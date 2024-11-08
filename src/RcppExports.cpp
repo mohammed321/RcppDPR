@@ -13,46 +13,27 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // run
-void run(arma::vec& y, arma::mat& W, arma::mat& G, arma::mat& UtX, size_t ni_test, size_t n_cvt, size_t ns_test, double l_min, double l_max, size_t n_region, double l_remle_null, double logl_remle_H0, double pve_null, double pve_se_null, double vg_remle_null, double ve_remle_null, size_t n_k, size_t w_step, size_t s_step);
-RcppExport SEXP _DPR_run(SEXP ySEXP, SEXP WSEXP, SEXP GSEXP, SEXP UtXSEXP, SEXP ni_testSEXP, SEXP n_cvtSEXP, SEXP ns_testSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP l_remle_nullSEXP, SEXP logl_remle_H0SEXP, SEXP pve_nullSEXP, SEXP pve_se_nullSEXP, SEXP vg_remle_nullSEXP, SEXP ve_remle_nullSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP) {
+Rcpp::List run(arma::vec& y, arma::mat& W, arma::mat& UtX, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
+RcppExport SEXP _RcppDPR_run(SEXP ySEXP, SEXP WSEXP, SEXP UtXSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type G(GSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type UtX(UtXSEXP);
-    Rcpp::traits::input_parameter< size_t >::type ni_test(ni_testSEXP);
-    Rcpp::traits::input_parameter< size_t >::type n_cvt(n_cvtSEXP);
-    Rcpp::traits::input_parameter< size_t >::type ns_test(ns_testSEXP);
-    Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
-    Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
-    Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    Rcpp::traits::input_parameter< double >::type l_remle_null(l_remle_nullSEXP);
-    Rcpp::traits::input_parameter< double >::type logl_remle_H0(logl_remle_H0SEXP);
-    Rcpp::traits::input_parameter< double >::type pve_null(pve_nullSEXP);
-    Rcpp::traits::input_parameter< double >::type pve_se_null(pve_se_nullSEXP);
-    Rcpp::traits::input_parameter< double >::type vg_remle_null(vg_remle_nullSEXP);
-    Rcpp::traits::input_parameter< double >::type ve_remle_null(ve_remle_nullSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_k(n_kSEXP);
     Rcpp::traits::input_parameter< size_t >::type w_step(w_stepSEXP);
     Rcpp::traits::input_parameter< size_t >::type s_step(s_stepSEXP);
-    run(y, W, G, UtX, ni_test, n_cvt, ns_test, l_min, l_max, n_region, l_remle_null, logl_remle_H0, pve_null, pve_se_null, vg_remle_null, ve_remle_null, n_k, w_step, s_step);
-    return R_NilValue;
-END_RCPP
-}
-// test_run
-void test_run(arma::vec& y);
-RcppExport SEXP _DPR_test_run(SEXP ySEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
-    test_run(y);
-    return R_NilValue;
+    Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
+    Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
+    Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
+    rcpp_result_gen = Rcpp::wrap(run(y, W, UtX, n_k, w_step, s_step, l_min, l_max, n_region));
+    return rcpp_result_gen;
 END_RCPP
 }
 // rcpp_hello
 List rcpp_hello();
-RcppExport SEXP _DPR_rcpp_hello() {
+RcppExport SEXP _RcppDPR_rcpp_hello() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -62,13 +43,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DPR_run", (DL_FUNC) &_DPR_run, 19},
-    {"_DPR_test_run", (DL_FUNC) &_DPR_test_run, 1},
-    {"_DPR_rcpp_hello", (DL_FUNC) &_DPR_rcpp_hello, 0},
+    {"_RcppDPR_run", (DL_FUNC) &_RcppDPR_run, 9},
+    {"_RcppDPR_rcpp_hello", (DL_FUNC) &_RcppDPR_rcpp_hello, 0},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_DPR(DllInfo *dll) {
+RcppExport void R_init_RcppDPR(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

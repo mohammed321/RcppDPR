@@ -69,6 +69,15 @@ std::tuple<vec,vec> gibbs_without_u_screen(
     size_t s_step)
 {
 
+    get_output_file("out_folder_mine/utx.txt") << UtX;
+	get_output_file("out_folder_mine/Uty.txt") << Uty;
+	get_output_file("out_folder_mine/UtW.txt") << UtW;
+	get_output_file("out_folder_mine/D.txt") << D;
+	get_output_file("out_folder_mine/Wbeta.txt") << Wbeta;
+	get_output_file("out_folder_mine/se_Wbeta.txt") << se_Wbeta;
+	get_output_file("out_folder_mine/beta.txt") << beta;
+	get_output_file("out_folder_mine/lambda.txt") << lambda;
+
     clock_t time_begin = clock();
     uword n_snp = UtX.n_cols; // n * p
     uword n_idv = Uty.n_elem;
@@ -203,10 +212,11 @@ std::tuple<vec,vec> gibbs_without_u_screen(
         // WritelmmBeta(beta);
         pheno_mean = m_alpha(0);
     }
-
     // //  begin MCMC sampling
     else
     {
+        ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
+        Rcpp::Rcout << progress_bar;
         for (size_t S = 0; S < (w_step + s_step); S++)
         {
 
@@ -299,7 +309,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
                 index = pikexp1 + pikexp2;
                 index = arma::exp(index - arma::max(index));
-                pik_beta.row(i) = index / arma::sum(index);
+                pik_beta.row(i) = index.t() / arma::sum(index);
 
                 // multinomial sampling
                 double mult_prob[n_k];
@@ -452,134 +462,39 @@ std::tuple<vec,vec> gibbs_without_u_screen(
                 post_sigma2b += sigma2b;
             }
 
-            size_t xstep = (s_step + w_step) * 0.2 + 1;
-            // if (S % xstep == 0 || S == (s_step + w_step - 1))
-            // {
-            //     ProgressBar("MCMC sampling ", S, s_step + w_step - 1);
-            // }
+            progress_bar.advance();
+            Rcpp::Rcout << progress_bar;
         }
     }
 
-    double mixture_no; // TODO: see where it comes from and where it goes
-    mixture_no = post_Gn / s_step;
+    Rcpp::Rcout << std::endl << "MCMC sampling is finished" << std::endl;
 
-    std::cout << std::endl
-              << "MCMC sampling is finished" << std::endl;
+    vec eigen_alpha = UtX.t() * (bv / s_step) / n_snp;
 
-    vec eigen_alpha(n_snp, arma::fill::zeros);
-    eigen_alpha = UtX.t() * (bv / s_step) / n_snp;
-    // WriteCoeff(eigen_alpha, post_Ebeta / s_step); // TODO: see how to output // this is whats important
     return {eigen_alpha, post_Ebeta / s_step};
-    pheno_mean = post_Ealpha(0) / s_step;
-
-    /////////
-    XEbeta = (UtX * post_Ebeta) / s_step;
-    WEalpha = (UtW * post_Ealpha) / s_step;
-    y_res = Uty - XEbeta - WEalpha;
-
-    double llike_hat = logLike(D, y_res, post_sigma2b / s_step, post_sigma2e / s_step);
-    vec llike2 = llike.tail(s_step);
-    llike2 -= arma::mean(llike2);
-    double pD1 = 2 * (llike_hat - post_llike / s_step);        // TODO: see where it comes from and where it goes
-    double pD2 = 2 * arma::dot(llike2, llike2) / (s_step - 1); // TODO: see where it comes from and where it goes
-    pD1 = (pD1 >= 0) ? pD1 : 1;
-
-    double DIC1 = -2 * llike_hat + 2 * pD1;          // TODO: see where it comes from and where it goes
-    double DIC2 = -2 * llike_hat + 2 * pD2;          // TODO: see where it comes from and where it goes
-    double BIC1 = -2 * llike_hat + log(n_idv) * pD1; // TODO: see where it comes from and where it goes
-    double BIC2 = -2 * llike_hat + log(n_idv) * pD2; // TODO: see where it comes from and where it goes
-
-    // cout<<" K     = " << n_k<<endl;
-    // cout<<" pD1   = " << pD1 <<endl;
-    // cout<<" pD2   = " << pD2<<endl;
-    // cout<<" DIC1  = " << DIC1<<endl;
-    // cout<<" DIC2  = " << DIC2<<endl;
-    // cout<<" BIC1  = " << BIC1<<endl;
-    // cout<<" BIC2  = " << BIC2<<endl;
-
-    // ofstream outfile1;
-    // outfile1.open ("llike.txt", ios::out | ios::binary);
-    // for (size_t k = 0; k<s_step; k++)  {
-    //	outfile1 << setprecision(7) <<llike2(k)<<endl;
-    //	}
-    // outfile1 << endl;
-
-    // for (size_t k = 0; k<(w_step+s_step); k++)  {
-    //	outfile1 << setprecision(7) <<llike(k)<<endl;
-    //	}
-    // outfile1 << endl;
-
-    // WriteLike(llike, w_step + s_step);
-
-    std::cout << "Computaion Time for DPR.Gibbs = ";
-    std::cout << (clock() - time_begin) / (double(CLOCKS_PER_SEC) * 60.0) << " min" << std::endl
-              << std::endl;
-    /*
-        //output mik and pik
-        ofstream outfile1;
-        ofstream outfile2;
-        ofstream outfile3;
-        ofstream outfile4;
-        outfile1.open ("mik.txt", ios::out | ios::binary);
-        outfile2.open ("pik.txt", ios::out | ios::binary);
-        outfile3.open ("sik.txt", ios::out | ios::binary);
-        //outfile4.open ("sigmak.txt", ios::out | ios::binary);
-
-        for (size_t i = 0; i<n_snp; i++)  {
-            for (size_t k = 0; k<n_k; k++)  {
-                outfile1 << setprecision(4) <<  mik_beta(i,k)<<"\t";
-                outfile2 << setprecision(4) <<  pik_beta(i,k)<<"\t";
-                outfile3 << setprecision(4) << sik2_beta(i,k)<<"\t";
-                //outfile4 << setprecision(4) << b_k(k)/a_k(k) <<"\t";
-                }
-            outfile1 << endl;
-            outfile2 << endl;
-            outfile3 << endl;
-            //outfile4 << endl;
-        }
-        outfile1.close();
-        outfile2.close();
-        outfile3.close();
-        //outfile4.close();
-        //output mik and pik
-    */
 }
 
-void run(
+Rcpp::List run(
     vec &y,
     mat &W,
-    mat &G, // ZP
-    mat &UtX,
-    size_t ni_test,
-    size_t n_cvt,
-    size_t ns_test,
-    double l_min,
-    double l_max,
-    size_t n_region,
-    double l_remle_null,
-    double logl_remle_H0,
-    double pve_null,
-    double pve_se_null,
-    double vg_remle_null,
-    double ve_remle_null,
+    mat &X,
     size_t n_k,
     size_t w_step,
-    size_t s_step
+    size_t s_step,
+    double l_min,
+    double l_max,
+    size_t n_region
     )
 {
-    //vec y(ni_test);
-    //mat W(y.n_elem, n_cvt);
-    //mat G(y.n_elem, y.n_elem); // ZP
-   // mat UtX(y.n_elem, ns_test);
+    // Compute relatedness matrix...
+    mat G = (X * X.t()) / X.n_cols;
 
-
-    // cPar.CopyCvtPhen(W, y, 0); // here y is not centered
-    //  // Compute relatedness matrix...
-    // cPar.ReadGenotypes(UtX, G, true);
      // eigen-decomposition and calculate trace_G
     mat U(y.n_elem, y.n_elem); // eigen vectors
     vec eigen_values(y.n_elem);
     arma::eig_sym(eigen_values, U, G);
+
+    get_output_file("out_folder/U.txt") << U;
 
     eigen_values.transform( [](double val) { return val < 1e-10 ? 0 : val; } );
     double trace_G = arma::mean(eigen_values);
@@ -587,13 +502,17 @@ void run(
 
     mat UtW = U.t() * W;
     vec Uty = U.t() * y;
-    vec y_res_w(ni_test);
 
+    double l_remle_null;
+    double logl_remle_H0;
+    double pve_null;
+    double pve_se_null;
+    double vg_remle_null;
+    double ve_remle_null;
 
     CalcLambda('R', arma_vec_to_gsl_vec(eigen_values).get(), arma_mat_to_gsl_mat(UtW).get(), arma_vec_to_gsl_vec(Uty).get(), l_min, l_max, n_region, l_remle_null, logl_remle_H0);
 
     CalcPve(arma_vec_to_gsl_vec(eigen_values).get(), arma_mat_to_gsl_mat(UtW).get(), arma_vec_to_gsl_vec(Uty).get(), l_remle_null, trace_G, pve_null, pve_se_null);
-
 
     gsl_vector *gsl_Wbeta = gsl_vector_alloc(W.n_cols);
     gsl_vector *gsl_se_Wbeta = gsl_vector_alloc(W.n_cols);
@@ -605,18 +524,19 @@ void run(
     gsl_vector_free(gsl_Wbeta);
     gsl_vector_free(gsl_se_Wbeta);
 
-    y_res_w = y - W * Wbeta;
-    Uty = U.t() * y_res_w;
-    vec bv = Uty / (eigen_values * l_remle_null + 1.0);
-    UtX = U.t() * UtX;
-    Uty = U.t() * y;
-    double lambda = l_remle_null;
-    vec beta = lambda * UtX.t() * bv / UtX.n_cols;
+    mat UtX = U.t() * X;
+    vec beta = l_remle_null * UtX.t() * ((U.t() * (y - (W * Wbeta))) / (eigen_values * l_remle_null + 1.0)) / UtX.n_cols;
+    Uty -= arma::mean(Uty);
 
-    gibbs_without_u_screen(UtX, vec(Uty - arma::mean(Uty)) , UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
-    n_k,
-    w_step,
-    s_step);
+    auto [alpha_vec, beta_vec] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
+                                                            n_k,
+                                                            w_step,
+                                                            s_step);
+
+    return Rcpp::List::create(
+                        Rcpp::Named("alpha") = alpha_vec,
+	                      Rcpp::Named("beta") = beta_vec
+                    );
 
 }
 
