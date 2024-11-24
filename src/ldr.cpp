@@ -4,7 +4,10 @@
 #include "random_sampling.h"
 #include "lmm.h"
 #include "utils.h"
-
+#include "gsl/gsl_vector.h"
+#include "gsl/gsl_matrix.h"
+#include "gsl/gsl_linalg.h"
+#include "gsl/gsl_eigen.h"
 using arma::uword;
 
 double sum_Elogvl2(const vec& vk, size_t k)
@@ -69,14 +72,14 @@ std::tuple<vec,vec> gibbs_without_u_screen(
     size_t s_step)
 {
 
-    get_output_file("out_folder_mine/utx.txt") << UtX;
-	get_output_file("out_folder_mine/Uty.txt") << Uty;
-	get_output_file("out_folder_mine/UtW.txt") << UtW;
-	get_output_file("out_folder_mine/D.txt") << D;
-	get_output_file("out_folder_mine/Wbeta.txt") << Wbeta;
-	get_output_file("out_folder_mine/se_Wbeta.txt") << se_Wbeta;
-	get_output_file("out_folder_mine/beta.txt") << beta;
-	get_output_file("out_folder_mine/lambda.txt") << lambda;
+    get_output_file("out_folder/utx.txt") << UtX;
+	get_output_file("out_folder/Uty.txt") << Uty;
+	get_output_file("out_folder/UtW.txt") << UtW;
+	get_output_file("out_folder/D.txt") << D;
+	get_output_file("out_folder/Wbeta.txt") << Wbeta;
+	get_output_file("out_folder/se_Wbeta.txt") << se_Wbeta;
+	get_output_file("out_folder/beta.txt") << beta;
+	get_output_file("out_folder/lambda.txt") << lambda;
 
     clock_t time_begin = clock();
     uword n_snp = UtX.n_cols; // n * p
@@ -242,8 +245,8 @@ std::tuple<vec,vec> gibbs_without_u_screen(
                 }
                 else
                 {
-                    sigma2k.at(k) = 1 / rs.gamma_sample(a_k(k), 1 / b_k(k));
-                    Elogsigmak.at(k) = log(sqrt(sigma2k(k)));
+                    sigma2k.at(k) = 1 / rs.gamma_sample(a_k.at(k), 1 / b_k.at(k));
+                    Elogsigmak.at(k) = log(sqrt(sigma2k.at(k)));
                     sumElogvl.at(k) = sumElogvl.at(k - 1) + log(1 - vk.at(k - 1));
                 }
 
@@ -309,7 +312,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
                 index = pikexp1 + pikexp2;
                 index = arma::exp(index - arma::max(index));
-                pik_beta.row(i) = index.t() / arma::sum(index);
+                pik_beta.row(i) = index.t() / arma::accu(index);
 
                 // multinomial sampling
                 double mult_prob[n_k];
@@ -319,6 +322,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
                 {
                     mult_prob[k] = pik_beta.at(i, k);
                 }
+
                 rs.multinomial_sample(n_k, 1, mult_prob, mult_no);
                 for (size_t k = 0; k < n_k; k++)
                 {
@@ -368,7 +372,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
             Ebeta2k = beta_beta % beta_beta % gamma_beta;
             a_k = arma::sum(gamma_beta, 0).t() / 2 + ak;
-            b_k += arma::sum(Ebeta2k, 0).t() / (2 * sigma2e);
+            b_k = arma::sum(Ebeta2k, 0).t() / (2 * sigma2e) + bk;
 
             /*y_res.setZero();
             y_res = Uty - XEbeta - WEalpha;
@@ -444,8 +448,6 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
             sigma2b = h(S + 1) / (1 - h(S + 1));
 
-            // cout<<S<<" "<<setprecision(6)<<h_new<<" "<<sigma2b<<" "<<sigma2e<<" "<<sigma2b*sigma2e<<endl;
-            // cout<<setprecision(6)<<sigma2bX_new<<" "<<sigma2b<<" "<<sigma2e<<" "<<sigma2b*sigma2e<<endl;
             if (S > (w_step - 1))
             {
                 post_Gn += Gn;
@@ -489,19 +491,23 @@ Rcpp::List run(
     // Compute relatedness matrix...
     mat G = (X * X.t()) / X.n_cols;
 
+    get_output_file("out_folder/G.txt") << G;
+
      // eigen-decomposition and calculate trace_G
     mat U(y.n_elem, y.n_elem); // eigen vectors
     vec eigen_values(y.n_elem);
     arma::eig_sym(eigen_values, U, G);
-
-    get_output_file("out_folder/U.txt") << U;
-
     eigen_values.transform( [](double val) { return val < 1e-10 ? 0 : val; } );
+
     double trace_G = arma::mean(eigen_values);
     // cout<<"Time for Eigen-Decomposition with GSL is "<<(clock()-time_start)/(double(CLOCKS_PER_SEC)*60.0)<<" mins"<<endl;
 
+    get_output_file("out_folder/U.txt") << U;
+    get_output_file("out_folder/W.txt") << W;
+
     mat UtW = U.t() * W;
     vec Uty = U.t() * y;
+    mat UtX = U.t() * X;
 
     double l_remle_null;
     double logl_remle_H0;
@@ -523,8 +529,7 @@ Rcpp::List run(
     vec se_Wbeta = gsl_vec_to_arma_vec(gsl_se_Wbeta);
     gsl_vector_free(gsl_Wbeta);
     gsl_vector_free(gsl_se_Wbeta);
-
-    mat UtX = U.t() * X;
+    
     vec beta = l_remle_null * UtX.t() * ((U.t() * (y - (W * Wbeta))) / (eigen_values * l_remle_null + 1.0)) / UtX.n_cols;
     Uty -= arma::mean(Uty);
 
