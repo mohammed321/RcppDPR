@@ -160,7 +160,7 @@ auto gibbs_without_u_screen(
     double lambdax;
     vec XEbeta(n_idv); // G*beta
     vec Ebeta(n_snp);
-    vec post_Ebeta(n_snp, arma::fill::zeros); // save beta
+    result.beta = vec(n_snp, arma::fill::zeros); // save beta
     mat Ebeta2k;
     mat B1;
     //// initial values for SNP and each normal
@@ -200,7 +200,7 @@ auto gibbs_without_u_screen(
     // x_col   =  UtX.col(i);
     // XEbeta += x_col*beta(i);
     // }
-    XEbeta = UtX * Ebeta; // ToDo: check with dan if this is bug should be beta instead?
+    XEbeta = UtX * beta; // ToDo: check with dan if this is bug should be beta instead?
 
     WEalpha = UtW * m_alpha;
 
@@ -284,7 +284,7 @@ auto gibbs_without_u_screen(
 
             if (S > (w_step - 1))
             {
-                post_Ebeta += Ebeta;
+                result.beta += Ebeta;
             }
 
             // sample sigma2k and compute related quantities
@@ -524,10 +524,8 @@ auto gibbs_without_u_screen(
 
     Rcpp::Rcout << std::endl << "MCMC sampling is finished" << std::endl;
 
-    vec eigen_alpha = UtX.t() * (bv / s_step) / n_snp;
-
-    result.alpha = eigen_alpha;
-    result.beta = post_Ebeta / s_step;
+    result.alpha = UtX.t() * (bv / s_step) / n_snp;
+    result.beta /=  s_step;
 
     return result;
 }
@@ -571,7 +569,7 @@ auto VB(
 
     vec WEalpha = UtW * m_alpha;
     vec XEbeta = UtX * beta; // G*beta
-    vec Ebeta;
+    // vec Ebeta(n_snp);
     vec post_Ebeta(n_snp); // save beta
     mat Ebeta2k;
     mat B1;
@@ -645,7 +643,7 @@ auto VB(
 
     ////initial values for a_k, b_k and sigma2k
     Ebeta2k = arma::square(mik_beta) + sik2_beta;
-    Ebeta = arma::sum(mik_beta % pik_beta, 1);
+    result.beta = arma::sum(mik_beta % pik_beta, 1);
 
     a_k = arma::sum(pik_beta, 0).t() / 2 + ak;
     b_k = (arma::sum(Ebeta2k, 0).t() * (a_e / b_e) / 2) + bk;
@@ -680,7 +678,7 @@ auto VB(
 
             Elogsigmae = 0.5 * (log(b_e) - gsl_sf_psi(a_e));
             //////////////  sampling the mixture snp effects
-            XEbeta = UtX * Ebeta;
+            XEbeta = UtX * result.beta;
 
             lambda_k(n_k - 1) = 0;
             double ab_e = a_e / b_e; // E(sigma2e-2)
@@ -690,7 +688,7 @@ auto VB(
             for (size_t i = 0; i < n_snp; i++)
             {
                 x_col = UtX.col(i);
-                XEbeta -= x_col * Ebeta.at(i);
+                XEbeta -= x_col * result.beta.at(i);
                 tx_ywx_res = arma::dot(x_col, y_res - XEbeta);
 
                 for (size_t k = 0; k < n_k; k++)
@@ -753,8 +751,8 @@ auto VB(
                     }*/
 
                 // pik_beta.row(i) = index/index.sum();
-                Ebeta.at(i) = arma::dot(mik_beta.row(i), pik_beta.row(i));
-                XEbeta += x_col * Ebeta.at(i);
+                result.beta.at(i) = arma::dot(mik_beta.row(i), pik_beta.row(i));
+                XEbeta += x_col * result.beta.at(i);
                 // cout<<setprecision(7)<<sik2_beta.row(i)<<" ";
                 // cout<<" "<<perm2(0)<<" "<<perm2(1)<<" "<<perm2(2)<<" "<<perm2(3)<<endl;
                 // cout<<" "<<pik_beta.row(i)<<endl;
@@ -808,7 +806,7 @@ auto VB(
                 // bv(i) = y_res(i)/(D(i) + a_b/b_b);
             }
 
-            vec VarBeta = arma::sum(Ebeta2k, 1) - arma::square(Ebeta);
+            vec VarBeta = arma::sum(Ebeta2k, 1) - arma::square(result.beta);
             A = arma::dot(y_res - Utu, y_res - Utu) + arma::dot(wtw, s2_alpha) +
                     arma::accu(V) + arma::dot(xtx, VarBeta);
             B1 = arma::repmat(a_k / b_k, 1, n_snp);
@@ -864,7 +862,6 @@ auto VB(
     */
 
     result.alpha = UtX.t() * bv / n_snp;
-    result.beta = Ebeta;
 
     return result;
 }
