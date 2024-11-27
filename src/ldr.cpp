@@ -4,11 +4,69 @@
 #include "random_sampling.h"
 #include "lmm.h"
 #include "utils.h"
-#include "gsl/gsl_vector.h"
-#include "gsl/gsl_matrix.h"
-#include "gsl/gsl_linalg.h"
-#include "gsl/gsl_eigen.h"
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_eigen.h>
+#include <gsl/gsl_sf_psi.h>
 using arma::uword;
+
+double ELBO1(const vec& a_k, const vec& b_k, size_t n_k)
+{
+	double sum_ELBO1 = 0;
+	for (size_t k = 1; k < n_k; k++)
+	{
+		sum_ELBO1 += lgamma(a_k.at(k)) - a_k.at(k) * log(b_k.at(k)) + a_k.at(k);
+	}
+	return sum_ELBO1;
+}
+
+double ELBO2(const vec& kappa_k, const vec& lambda_k, size_t n_k)
+{
+	double sum_ELBO2 = 0;
+	for (size_t k = 0; k < n_k - 1; k++)
+	{
+		sum_ELBO2 += lgamma(kappa_k.at(k)) + lgamma(lambda_k.at(k)) -
+					 lgamma(kappa_k.at(k) + lambda_k.at(k));
+	}
+	return sum_ELBO2;
+}
+
+double ELBO3(const mat& pik_beta, const mat& sik2_beta)
+{
+	double sum_ELBO3 = 0;
+	mat pik_sik2;
+	mat sik2_betax;
+	sik2_betax = sik2_beta * 2 * 3.141593 * 2.718282;
+	pik_sik2 = arma::log(pik_beta + 1e-10) - 0.5 * arma::log(sik2_betax + 1e-10);
+	sum_ELBO3 = arma::accu(pik_sik2 % pik_beta);
+	return sum_ELBO3;
+}
+
+double sum_b_lambda(const vec& lambda_k, const vec& kappa_k, size_t n_k)
+{
+	double sb_lambda = 0;
+	for (size_t k = 0; k < n_k - 1; k++)
+	{
+		sb_lambda += gsl_sf_psi(lambda_k.at(k)) - gsl_sf_psi(kappa_k.at(k) + lambda_k.at(k));
+	}
+	return sb_lambda;
+}
+
+double sum_Elogvl(const vec& lambda_k, const vec& kappa_k, size_t k)
+{
+	double sumElogvl = 0;
+	if (k == 0)
+		sumElogvl = 0;
+	else
+	{
+		for (size_t j = 0; j < k; j++)
+		{
+			sumElogvl += gsl_sf_psi(lambda_k.at(j)) - gsl_sf_psi(kappa_k.at(j) + lambda_k.at(j));
+		}
+	}
+	return sumElogvl;
+}
 
 double sum_Elogvl2(const vec& vk, size_t k)
 {
@@ -58,7 +116,7 @@ double log_h(const vec &D, const vec &y_res, double h, double sigma2e, double ae
     return log_density;
 }
 
-std::tuple<vec,vec> gibbs_without_u_screen(
+auto gibbs_without_u_screen(
     const mat &UtX,
     const vec &Uty,
     const mat &UtW,
@@ -71,15 +129,10 @@ std::tuple<vec,vec> gibbs_without_u_screen(
     size_t w_step,
     size_t s_step)
 {
-
-    get_output_file("out_folder/utx.txt") << UtX;
-	get_output_file("out_folder/Uty.txt") << Uty;
-	get_output_file("out_folder/UtW.txt") << UtW;
-	get_output_file("out_folder/D.txt") << D;
-	get_output_file("out_folder/Wbeta.txt") << Wbeta;
-	get_output_file("out_folder/se_Wbeta.txt") << se_Wbeta;
-	get_output_file("out_folder/beta.txt") << beta;
-	get_output_file("out_folder/lambda.txt") << lambda;
+    struct Result {
+        vec alpha;
+        vec beta;
+    } result;
 
     clock_t time_begin = clock();
     uword n_snp = UtX.n_cols; // n * p
@@ -113,7 +166,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
     //// initial values for SNP and each normal
     //// component has the same initial values
     mat mik_beta = arma::repmat(beta, 1, n_k);
-    mik_beta.row(0).zeros();
+    mik_beta.col(0).zeros();
 
     vec llike(w_step + s_step, arma::fill::zeros);
 
@@ -147,7 +200,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
     // x_col   =  UtX.col(i);
     // XEbeta += x_col*beta(i);
     // }
-    XEbeta = UtX * Ebeta;
+    XEbeta = UtX * Ebeta; // ToDo: check with dan if this is bug should be beta instead?
 
     WEalpha = UtW * m_alpha;
 
@@ -329,7 +382,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
                     gamma_beta.at(i, k) = mult_no[k];
                 }
 
-                Ebeta(i) = arma::dot(beta_beta.row(i), gamma_beta.row(i));
+                Ebeta.at(i) = arma::dot(beta_beta.row(i), gamma_beta.row(i));
                 XEbeta += x_col * Ebeta.at(i);
             }
 
@@ -347,7 +400,7 @@ std::tuple<vec,vec> gibbs_without_u_screen(
             y_res = Uty - XEbeta;
             for (size_t j = 0; j < n_j; j++)
             {
-                WEalpha -= UtW.col(j) * Ealpha(j);
+                WEalpha -= UtW.col(j) * Ealpha.at(j);
                 H = UtW.col(j) % H0;
                 m_alpha.at(j) = arma::dot(H, y_res - WEalpha) / arma::dot(H, UtW.col(j));
                 s2_alpha.at(j) = sigma2e / arma::dot(H, UtW.col(j));
@@ -366,8 +419,8 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
             for (size_t k = 0; k < n_k - 1; k++)
             {
-                kappa_k(k) = arma::accu(gamma_beta.col(k)) + 1;
-                lambda_k(k) = sum_lambda_k(gamma_beta, k, n_k) + lambdax;
+                kappa_k.at(k) = arma::accu(gamma_beta.col(k)) + 1;
+                lambda_k.at(k) = sum_lambda_k(gamma_beta, k, n_k) + lambdax;
             }
 
             Ebeta2k = beta_beta % beta_beta % gamma_beta;
@@ -473,10 +526,410 @@ std::tuple<vec,vec> gibbs_without_u_screen(
 
     vec eigen_alpha = UtX.t() * (bv / s_step) / n_snp;
 
-    return {eigen_alpha, post_Ebeta / s_step};
+    result.alpha = eigen_alpha;
+    result.beta = post_Ebeta / s_step;
+
+    return result;
 }
 
-Rcpp::List run(
+auto VB(
+    const mat &UtX,
+    const vec &Uty,
+    const mat &UtW,
+    const vec &D,
+    const vec &Wbeta,
+    const vec &se_Wbeta,
+    const vec &beta,
+    double lambda,
+    size_t n_k)
+{
+    struct Result {
+        vec alpha;
+        vec beta;
+    } result;
+
+    setprecision(5);
+    clock_t time_begin = clock();
+
+    size_t n_snp = UtX.n_cols;
+    size_t n_idv = Uty.n_elem;
+    size_t n_j = UtW.n_cols;
+    vec x_col(n_idv);
+
+    vec Utu(n_idv, arma::fill::zeros);
+    vec Ue(n_idv);
+    vec Ub(n_idv);
+    vec bv(n_idv, arma::fill::zeros); // for computation of alpha
+    vec V(n_idv, arma::fill::zeros);	 // compute Utu
+    vec M (n_idv, arma::fill::zeros);	 // compute Utu
+    vec snp_label(n_snp);
+
+    vec Ealpha = Wbeta;					// intercept
+    vec post_Ealpha(n_j, arma::fill::zeros); // save intercept
+    vec m_alpha = Wbeta;
+    vec s2_alpha = arma::square(se_Wbeta); // element wise square
+
+    vec WEalpha = UtW * m_alpha;
+    vec XEbeta = UtX * beta; // G*beta
+    vec Ebeta;
+    vec post_Ebeta(n_snp); // save beta
+    mat Ebeta2k;
+    mat B1;
+
+    vec xtx = arma::sum(arma::square(UtX), 0).t();
+    vec xty = UtX.t() * Uty;
+    vec wtw = arma::sum(arma::square(UtW), 0).t();
+    vec wty = UtW.t() * Uty;
+
+    //// initial values for SNP and each normal
+    //// component has the same initial values
+    mat mik_beta = arma::repmat(beta, 1, n_k);
+    mik_beta.col(0).zeros();
+
+    mat sik2_beta = arma::randu(n_snp, n_k, arma::distr_param(0, 1));
+    mat pik_beta(n_snp, n_k);
+    pik_beta.fill((double)1 / n_k);
+
+    // MatrixXd beta_beta  = mik_beta;
+    mat beta_beta(n_snp, n_k, arma::fill::zeros);
+    mat gamma_beta(n_snp, n_k, arma::fill::zeros);
+    gamma_beta.fill((double)1 / n_k);
+    mat post_gamma_beta(n_snp, n_k, arma::fill::zeros);
+    mat post_pik_beta(n_snp, n_k, arma::fill::zeros);
+
+
+    vec sigma2k(n_k);
+    vec vk(n_k);
+    vec Elogsigmak(n_k);
+    vec Elogvk(n_k);
+    vec sumElogvl(n_k);
+
+    vec pikexp1(n_k);
+    vec pikexp2(n_k);
+    vec index;
+    vec a_k = arma::randu(n_k, arma::distr_param(0, 1));
+    vec b_k = arma::randu(n_k, arma::distr_param(0, 1));
+    vec kappa_k(n_k);
+    kappa_k.fill(n_snp * (double)1 / n_k);
+    vec lambda_k = arma::randu(n_k, arma::distr_param(0, 1));
+
+    vec y_res = Uty - WEalpha - XEbeta;
+    double sigma2e0 = (arma::dot(y_res, y_res)) / (n_idv - 1);
+    double a_e = (2 * n_idv + n_snp) / 2;
+    double b_e = (a_e - 1) * sigma2e0;
+
+    double ak = 21;
+    lambda = std::clamp(lambda, 0.01, 100.0);
+    double bk0 = lambda * (ak - 1) / n_snp;
+
+    vec bk(n_k);
+    bk.at(0) = bk0;
+    for (size_t i = 1; i < n_k; i++)
+    {
+        bk.at(i) = bk.at(i - 1) * 1.7 * sqrt(pow(i, i));
+    }
+
+    sik2_beta = arma::repmat(bk.t(), n_snp, 1) / ((ak - 1) * sigma2e0);
+
+    double ae = 0.1;
+    double be = 0.1;
+    double a_b = 0.1;
+    double b_b = 0.1;
+    // double a0   = 400;
+    // double b0   = 40;
+    double a0 = 1;
+    double b0 = 0.1;
+    double a_lambda = a0 + n_k;
+    double b_lambda = b0;
+    double Elogsigmae, tx_ywx_res, xtxabk, A;
+
+    ////initial values for a_k, b_k and sigma2k
+    Ebeta2k = arma::square(mik_beta) + sik2_beta;
+    Ebeta = arma::sum(mik_beta % pik_beta, 1);
+
+    a_k = arma::sum(pik_beta, 0).t() / 2 + ak;
+    b_k = (arma::sum(Ebeta2k, 0).t() * (a_e / b_e) / 2) + bk;
+    sigma2k = b_k / (a_k - 1);
+
+    A = arma::dot(y_res, y_res);
+    B1 = arma::repmat(1 / sigma2k, 1, n_snp);
+    B1.col(0).zeros();
+
+    Ebeta2k = Ebeta2k % B1.t();
+    double B = arma::accu(Ebeta2k);
+    a_e = n_idv + n_snp * 0.1 + ae;
+    b_e = (A + B + 2 * be) / 2;
+
+    size_t int_step = 0;
+    size_t max_step = n_idv * sqrt(10);
+    double delta = 10;
+    vec ELBO(max_step, arma::fill::zeros);
+
+    double pheno_mean;
+
+    // WritelmmBeta(beta);
+    if (n_k == 1)
+    {
+        pheno_mean = m_alpha(0);
+    }
+    /////////////////// variational bayesian/////////////
+    else
+    {
+        while ((int_step < max_step) && (delta > 1e-7))
+        {
+
+            Elogsigmae = 0.5 * (log(b_e) - gsl_sf_psi(a_e));
+            //////////////  sampling the mixture snp effects
+            XEbeta = UtX * Ebeta;
+
+            lambda_k(n_k - 1) = 0;
+            double ab_e = a_e / b_e; // E(sigma2e-2)
+            double ba_e = b_e / a_e; // 1/E(sigma2e-2)
+
+            y_res = Uty - WEalpha - Utu;
+            for (size_t i = 0; i < n_snp; i++)
+            {
+                x_col = UtX.col(i);
+                XEbeta -= x_col * Ebeta.at(i);
+                tx_ywx_res = arma::dot(x_col, y_res - XEbeta);
+
+                for (size_t k = 0; k < n_k; k++)
+                {
+                    if (k == 0)
+                    {
+                        mik_beta.at(i, k) = 0;
+                        sik2_beta.at(i, k) = 0;
+                        pikexp1.at(k) = 0;
+                        Elogsigmak.at(k) = 0;
+                    }
+                    else
+                    {
+                        xtxabk = xtx.at(i) + a_k.at(k) / b_k.at(k);
+                        mik_beta.at(i, k) = tx_ywx_res / xtxabk;
+                        sik2_beta.at(i, k) = ba_e / xtxabk;
+                        Elogsigmak.at(k) = 0.5 * (log(b_k.at(k)) - gsl_sf_psi(a_k.at(k)));
+                        pikexp1.at(k) = pow(mik_beta.at(i, k), 2) / (2 * sik2_beta.at(i, k)) +
+                                        log(sqrt(sik2_beta.at(i, k))) - Elogsigmae - Elogsigmak.at(k);
+                        // pikexp1(k)     =-pow(mik_beta(i,k),2)*(a_k(k)/b_k(k))*ab_e/2- Elogsigmae - Elogsigmak(k);
+                    }
+
+                    // if (k == (n_k-1))   {
+                    // vk(k)	  = 1;
+                    // Elogvk(k) = 0;
+                    // }
+                    // else   {
+                    Elogvk.at(k) = gsl_sf_psi(kappa_k.at(k)) - gsl_sf_psi(kappa_k.at(k) + lambda_k.at(k));
+                    //}
+
+                    sumElogvl.at(k) = sum_Elogvl(lambda_k, kappa_k, k);
+                    pikexp2.at(k) = Elogvk.at(k) + sumElogvl.at(k);
+                }
+
+                index = pikexp1 + pikexp2;
+                index = arma::exp(index - arma::max(index));
+                pik_beta.row(i) = index.t() / arma::accu(index);
+
+                /*
+                /// sort sik2_beta and pik_beta
+                gsl_vector *index0 = gsl_vector_alloc (n_k);
+                gsl_vector *sik2_beta0 = gsl_vector_alloc (n_k);
+                for (size_t k=0; k<n_k; k++)   {
+                    gsl_vector_set(index0,k,index(k));
+                    gsl_vector_set(sik2_beta0,k,sik2_beta(i,k));
+                    }
+                //gsl_sort_vector(index0);
+                //gsl_vector_reverse(index0);
+                gsl_permutation * perm0 = gsl_permutation_alloc (n_k);
+                gsl_vector *perm1 = gsl_vector_alloc (n_k);
+                VectorXd perm2(n_k);
+                gsl_permutation_init (perm0);
+                gsl_sort_vector_index (perm0, sik2_beta0);
+                gsl_sort_vector(sik2_beta0);
+                for (size_t k=0; k<n_k; k++)   {
+                    sik2_beta(i,k) = gsl_vector_get(sik2_beta0,k);
+                    gsl_vector_set(perm1, k, perm0->data[k]);
+                    perm2(k) = gsl_vector_get(perm1,k);
+                    index(k) = gsl_vector_get(index0,perm2(k));
+                    }*/
+
+                // pik_beta.row(i) = index/index.sum();
+                Ebeta.at(i) = arma::dot(mik_beta.row(i), pik_beta.row(i));
+                XEbeta += x_col * Ebeta.at(i);
+                // cout<<setprecision(7)<<sik2_beta.row(i)<<" ";
+                // cout<<" "<<perm2(0)<<" "<<perm2(1)<<" "<<perm2(2)<<" "<<perm2(3)<<endl;
+                // cout<<" "<<pik_beta.row(i)<<endl;
+                /// sort sik2_beta and pik_beta
+            }
+            //////////////  sampling the mixture snp effects
+
+            WEalpha = UtW * Ealpha;
+
+            y_res = Uty - XEbeta - Utu;
+            for (size_t j = 0; j < n_j; j++)
+            {
+                WEalpha -= UtW.col(j) * Ealpha.at(j);
+                Ealpha.at(j) = 1 / wtw.at(j) * arma::dot(UtW.col(j), y_res - WEalpha);
+                s2_alpha.at(j) = ba_e / wtw.at(j);
+                WEalpha += UtW.col(j) * Ealpha.at(j);
+            }
+
+            a_lambda = a0 + n_k;
+            b_lambda = b0 - sum_b_lambda(lambda_k, kappa_k, n_k);
+
+            for (size_t k = 0; k < n_k - 1; k++)
+            {
+                kappa_k.at(k) = arma::accu(pik_beta.col(k)) + 1;
+                lambda_k.at(k) = sum_lambda_k(pik_beta, k, n_k) + a_lambda / b_lambda;
+            }
+
+            Ebeta2k = (arma::square(mik_beta) + sik2_beta) % pik_beta;
+            a_k = arma::sum(pik_beta, 0).t() / 2 + ak;
+            b_k = arma::sum(Ebeta2k, 0).t() * ab_e / 2 + bk;
+
+            y_res = Uty - XEbeta - WEalpha;
+            double ab = a_b / b_b;
+            for (size_t i = 0; i < n_idv; i++)
+            {
+                if (D.at(i) == 0)
+                {
+                    V.at(i) = 0;
+                    Utu.at(i) = 0;
+                    Ue.at(i) = 0;
+                    Ub.at(i) = 0;
+                }
+                else
+                {
+                    double abD = ab / D.at(i);
+                    V.at(i) = ba_e / (abD + 1);
+                    Utu.at(i) = y_res(i) / (abD + 1);
+                    Ue.at(i) = (Utu.at(i) * Utu.at(i) + V.at(i)) * abD;			// for sigma2e
+                    Ub.at(i) = (Utu.at(i) * Utu.at(i) + V.at(i)) * ab_e / D.at(i); // for sigma2b
+                }
+                // bv(i) = y_res(i)/(D(i) + a_b/b_b);
+            }
+
+            vec VarBeta = arma::sum(Ebeta2k, 1) - arma::square(Ebeta);
+            A = arma::dot(y_res - Utu, y_res - Utu) + arma::dot(wtw, s2_alpha) +
+                    arma::accu(V) + arma::dot(xtx, VarBeta);
+            B1 = arma::repmat(a_k / b_k, 1, n_snp);
+            B1.col(0).zeros();
+            double B = arma::accu(Ebeta2k % B1.t());
+            double Gn = arma::accu(pik_beta.cols(pik_beta.n_cols - n_k + 1, pik_beta.n_cols - 1));
+
+            // mixture_no=Gn;
+
+            a_e = n_idv + Gn / 2 + ae;
+            b_e = (A + B + arma::accu(Ue)) / 2 + be;
+
+            a_b = n_idv / 2 + ae;
+            b_b = arma::accu(Ub) / 2 + be;
+
+            int_step++;
+            vec ab_k = a_k / b_k;
+
+            ELBO.at(int_step) = (lgamma(a_e) - a_e * log(b_e) +
+                            lgamma(a_b) - a_b * log(b_b) + a_b +
+                            ELBO1(a_k, b_k, n_k) +
+                            ELBO2(kappa_k, lambda_k, n_k) -
+                            ELBO3(pik_beta, sik2_beta) +
+                            0.5 * arma::accu(arma::log(s2_alpha)) +
+                            0.5 * arma::accu(arma::log(V + 1e-10)) +
+                            lgamma(a_lambda) - a_lambda * log(b_lambda)) +
+                            a_lambda -
+                            be * (arma::accu(ab_k.tail(n_k - 1)) + ab + a_lambda / b_lambda);
+
+            ////////////////////////////////////
+            delta = abs((ELBO.at(int_step) - ELBO.at(int_step - 1)) / ELBO.at(int_step));
+
+            // if ((int_step+1)%10==0) {cout<<int_step+1<<" "<<setprecision(5)<<delta<<" "<<ELBO(int_step)<<endl;}
+        }
+    }
+
+    y_res = Uty - XEbeta - WEalpha;
+    bv = y_res / (D + (a_b / b_b));
+    Rcpp::Rcout << "Compute the polygenic effects ..." << endl;
+    Rcpp::Rcout << "variational bayes is finished" << endl;
+    /*
+    gsl_vector *gsl_bv    = gsl_vector_alloc (n_idv);
+    gsl_vector *gsl_alpha = gsl_vector_alloc (n_snp);
+    gsl_vector_set_zero (gsl_bv);
+    VectorXd eigen_alpha = VectorXd::Zero (n_snp);
+    for (size_t i=0; i<n_idv; i++) {
+        gsl_vector_set (gsl_bv,i,bv(i));
+    }
+    gsl_blas_dgemv (CblasTrans,1.0/(double)n_snp,UtX,gsl_bv,0.0,gsl_alpha);
+    for (size_t i = 0; i < n_snp; i++) {
+        eigen_alpha(i) = gsl_vector_get(gsl_alpha, i);
+        }
+    */
+
+    result.alpha = UtX.t() * bv / n_snp;
+    result.beta = Ebeta;
+
+    return result;
+}
+
+auto setup(
+    vec &y,
+    mat &W,
+    mat &X,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+    struct Result {
+        mat UtX;
+        vec Uty;
+        mat UtW;
+        vec eigen_values;
+        vec Wbeta;
+        vec se_Wbeta;
+        vec beta;
+        double l_remle_null;
+    } result;
+
+    // Compute relatedness matrix...
+    mat G = (X * X.t()) / X.n_cols;
+
+    // eigen-decomposition and calculate trace_G
+    mat U(y.n_elem, y.n_elem); // eigen vectors
+    arma::eig_sym(result.eigen_values, U, G);
+    result.eigen_values.transform( [](double val) { return val < 1e-10 ? 0 : val; } );
+
+    double trace_G = arma::mean(result.eigen_values);
+
+    result.UtW = U.t() * W;
+    result.Uty = U.t() * y;
+    result.UtX = U.t() * X;
+
+    double logl_remle_H0;
+    double pve_null;
+    double pve_se_null;
+    double vg_remle_null;
+    double ve_remle_null;
+
+    CalcLambda('R', arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
+
+    CalcPve(arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), result.l_remle_null, trace_G, pve_null, pve_se_null);
+
+    gsl_vector *gsl_Wbeta = gsl_vector_alloc(W.n_cols);
+    gsl_vector *gsl_se_Wbeta = gsl_vector_alloc(W.n_cols);
+
+    CalcLmmVgVeBeta(arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), result.l_remle_null, vg_remle_null, ve_remle_null, gsl_Wbeta, gsl_se_Wbeta);
+
+    result.Wbeta = gsl_vec_to_arma_vec(gsl_Wbeta);
+    result.se_Wbeta = gsl_vec_to_arma_vec(gsl_se_Wbeta);
+    gsl_vector_free(gsl_Wbeta);
+    gsl_vector_free(gsl_se_Wbeta);
+
+    result.beta = result.l_remle_null * result.UtX.t() * ((U.t() * (y - (W * result.Wbeta))) / (result.eigen_values * result.l_remle_null + 1.0)) / result.UtX.n_cols;
+    result.Uty -= arma::mean(result.Uty);
+
+    return result;
+}
+
+Rcpp::List run_gibbs_without_u_screen(
     vec &y,
     mat &W,
     mat &X,
@@ -488,50 +941,7 @@ Rcpp::List run(
     size_t n_region
     )
 {
-    // Compute relatedness matrix...
-    mat G = (X * X.t()) / X.n_cols;
-
-    get_output_file("out_folder/G.txt") << G;
-
-     // eigen-decomposition and calculate trace_G
-    mat U(y.n_elem, y.n_elem); // eigen vectors
-    vec eigen_values(y.n_elem);
-    arma::eig_sym(eigen_values, U, G);
-    eigen_values.transform( [](double val) { return val < 1e-10 ? 0 : val; } );
-
-    double trace_G = arma::mean(eigen_values);
-    // cout<<"Time for Eigen-Decomposition with GSL is "<<(clock()-time_start)/(double(CLOCKS_PER_SEC)*60.0)<<" mins"<<endl;
-
-    get_output_file("out_folder/U.txt") << U;
-    get_output_file("out_folder/W.txt") << W;
-
-    mat UtW = U.t() * W;
-    vec Uty = U.t() * y;
-    mat UtX = U.t() * X;
-
-    double l_remle_null;
-    double logl_remle_H0;
-    double pve_null;
-    double pve_se_null;
-    double vg_remle_null;
-    double ve_remle_null;
-
-    CalcLambda('R', arma_vec_to_gsl_vec(eigen_values).get(), arma_mat_to_gsl_mat(UtW).get(), arma_vec_to_gsl_vec(Uty).get(), l_min, l_max, n_region, l_remle_null, logl_remle_H0);
-
-    CalcPve(arma_vec_to_gsl_vec(eigen_values).get(), arma_mat_to_gsl_mat(UtW).get(), arma_vec_to_gsl_vec(Uty).get(), l_remle_null, trace_G, pve_null, pve_se_null);
-
-    gsl_vector *gsl_Wbeta = gsl_vector_alloc(W.n_cols);
-    gsl_vector *gsl_se_Wbeta = gsl_vector_alloc(W.n_cols);
-
-    CalcLmmVgVeBeta(arma_vec_to_gsl_vec(eigen_values).get(), arma_mat_to_gsl_mat(UtW).get(), arma_vec_to_gsl_vec(Uty).get(), l_remle_null, vg_remle_null, ve_remle_null, gsl_Wbeta, gsl_se_Wbeta);
-
-    vec Wbeta = gsl_vec_to_arma_vec(gsl_Wbeta);
-    vec se_Wbeta = gsl_vec_to_arma_vec(gsl_se_Wbeta);
-    gsl_vector_free(gsl_Wbeta);
-    gsl_vector_free(gsl_se_Wbeta);
-    
-    vec beta = l_remle_null * UtX.t() * ((U.t() * (y - (W * Wbeta))) / (eigen_values * l_remle_null + 1.0)) / UtX.n_cols;
-    Uty -= arma::mean(Uty);
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
 
     auto [alpha_vec, beta_vec] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             n_k,
@@ -540,7 +950,28 @@ Rcpp::List run(
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
-	                      Rcpp::Named("beta") = beta_vec
+	                    Rcpp::Named("beta") = beta_vec
+                    );
+
+}
+
+Rcpp::List run_VB(
+    vec &y,
+    mat &W,
+    mat &X,
+    size_t n_k,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
+
+    auto [alpha_vec, beta_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
+
+    return Rcpp::List::create(
+                        Rcpp::Named("alpha") = alpha_vec,
+	                    Rcpp::Named("beta") = beta_vec
                     );
 
 }

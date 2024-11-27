@@ -12,9 +12,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// run
-Rcpp::List run(arma::vec& y, arma::mat& W, arma::mat& UtX, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run(SEXP ySEXP, SEXP WSEXP, SEXP UtXSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+// run_gibbs_without_u_screen
+Rcpp::List run_gibbs_without_u_screen(arma::vec& y, arma::mat& W, arma::mat& UtX, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen(SEXP ySEXP, SEXP WSEXP, SEXP UtXSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -27,7 +27,24 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run(y, W, UtX, n_k, w_step, s_step, l_min, l_max, n_region));
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen(y, W, UtX, n_k, w_step, s_step, l_min, l_max, n_region));
+    return rcpp_result_gen;
+END_RCPP
+}
+// run_VB
+Rcpp::List run_VB(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, double l_min, double l_max, size_t n_region);
+RcppExport SEXP _RcppDPR_run_VB(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< size_t >::type n_k(n_kSEXP);
+    Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
+    Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
+    Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_VB(y, W, X, n_k, l_min, l_max, n_region));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -43,7 +60,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_RcppDPR_run", (DL_FUNC) &_RcppDPR_run, 9},
+    {"_RcppDPR_run_gibbs_without_u_screen", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen, 9},
+    {"_RcppDPR_run_VB", (DL_FUNC) &_RcppDPR_run_VB, 7},
     {"_RcppDPR_rcpp_hello", (DL_FUNC) &_RcppDPR_rcpp_hello, 0},
     {NULL, NULL, 0}
 };
