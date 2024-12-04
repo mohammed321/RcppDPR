@@ -9,6 +9,7 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_sf_psi.h>
+#include <utility>
 using arma::uword;
 
 double ELBO1(const vec& a_k, const vec& b_k, size_t n_k)
@@ -132,6 +133,7 @@ auto gibbs_without_u_screen(
     struct Result {
         vec alpha;
         vec beta;
+        double DIC1;
     } result;
 
     clock_t time_begin = clock();
@@ -527,6 +529,10 @@ auto gibbs_without_u_screen(
     result.alpha = UtX.t() * (bv / s_step) / n_snp;
     result.beta /=  s_step;
 
+    double llike_hat = logLike(D, y_res, post_sigma2b / s_step, post_sigma2e / s_step);
+    double pD1 = 2 * (llike_hat - post_llike / s_step);
+    result.DIC1 = -2 * llike_hat + 2 * pD1;
+
     return result;
 }
 
@@ -866,6 +872,51 @@ auto VB(
     return result;
 }
 
+auto gibbs_without_u_screen_adaptive(
+    const mat &UtX,
+    const vec &Uty,
+    const mat &UtW,
+    const vec &eigen_values,
+    const vec &Wbeta,
+    const vec &se_Wbeta,
+    const vec &beta,
+    double lambda,
+    size_t m_n_k,
+    size_t w_step,
+    size_t s_step)
+{
+    Rcpp::Rcout << "Now start to adaptively select nk..." << std::endl;
+    double min_dic = 10e100;
+    size_t n_k = 4;
+    double sp = 0.1;
+
+    for (size_t j = 0; j < (m_n_k - 1); j++)
+    {
+        Rcpp::Rcout << "nk == " << j + 2 << std::endl;
+        // cLdr.Gibbs_without_u_screen_dic0(UtX, y0, W0, D, Wbeta0, se_Wbeta0, beta, snp_no, lambda, j + 2);
+        auto [_unused1, _unused2, DIC1] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
+                                                            j + 2,
+                                                            w_step * sp,
+                                                            s_step * sp);
+        Rcpp::Rcout << "DIC is " << DIC1 << std::endl;
+        if (DIC1 < min_dic)
+        {
+            min_dic = DIC1;
+            n_k = j + 2;
+        }
+    }
+
+    cout << "The adaptive selection procedure is finished nk == " << n_k << " was selcted with DIC " << min_dic << endl;
+    cout << "Now start to MCMC sampling with adaptively selected nk..." << endl;
+    // cLdr.Gibbs_without_u_screen_dic1(UtX, y0, W0, D, Wbeta0, se_Wbeta0, beta, snp_no, lambda, n_k);
+
+    return gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
+                                                            n_k,
+                                                            w_step,
+                                                            s_step);
+}
+
+
 auto setup(
     vec &y,
     mat &W,
@@ -940,7 +991,7 @@ Rcpp::List run_gibbs_without_u_screen(
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
 
-    auto [alpha_vec, beta_vec] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
+    auto [alpha_vec, beta_vec, _] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             n_k,
                                                             w_step,
                                                             s_step);
@@ -949,7 +1000,31 @@ Rcpp::List run_gibbs_without_u_screen(
                         Rcpp::Named("alpha") = alpha_vec,
 	                    Rcpp::Named("beta") = beta_vec
                     );
+}
 
+Rcpp::List run_gibbs_without_u_screen_adaptive(
+    vec &y,
+    mat &W,
+    mat &X,
+    size_t m_n_k,
+    size_t w_step,
+    size_t s_step,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
+
+    auto [alpha_vec, beta_vec, _] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
+                                                            m_n_k,
+                                                            w_step,
+                                                            s_step);
+
+    return Rcpp::List::create(
+                        Rcpp::Named("alpha") = alpha_vec,
+	                    Rcpp::Named("beta") = beta_vec
+                    );
 }
 
 Rcpp::List run_VB(
@@ -970,6 +1045,5 @@ Rcpp::List run_VB(
                         Rcpp::Named("alpha") = alpha_vec,
 	                    Rcpp::Named("beta") = beta_vec
                     );
-
 }
 
