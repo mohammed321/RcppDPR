@@ -1,15 +1,11 @@
 #include "ldr.h"
-#include <algorithm>
 #include <math.h>
-#include "random_sampling.h"
 #include "lmm.h"
+#include "random_sampling.h"
 #include "utils.h"
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_eigen.h>
-#include <gsl/gsl_sf_psi.h>
-#include <utility>
+
 using arma::uword;
 
 double ELBO1(const vec& a_k, const vec& b_k, size_t n_k)
@@ -49,7 +45,7 @@ double sum_b_lambda(const vec& lambda_k, const vec& kappa_k, size_t n_k)
 	double sb_lambda = 0;
 	for (size_t k = 0; k < n_k - 1; k++)
 	{
-		sb_lambda += gsl_sf_psi(lambda_k.at(k)) - gsl_sf_psi(kappa_k.at(k) + lambda_k.at(k));
+		sb_lambda += R::digamma(lambda_k.at(k)) - R::digamma(kappa_k.at(k) + lambda_k.at(k));
 	}
 	return sb_lambda;
 }
@@ -63,7 +59,7 @@ double sum_Elogvl(const vec& lambda_k, const vec& kappa_k, size_t k)
 	{
 		for (size_t j = 0; j < k; j++)
 		{
-			sumElogvl += gsl_sf_psi(lambda_k.at(j)) - gsl_sf_psi(kappa_k.at(j) + lambda_k.at(j));
+			sumElogvl += R::digamma(lambda_k.at(j)) - R::digamma(kappa_k.at(j) + lambda_k.at(j));
 		}
 	}
 	return sumElogvl;
@@ -137,20 +133,12 @@ auto gibbs_without_u_screen(
     } result;
 
     clock_t time_begin = clock();
+
     uword n_snp = UtX.n_cols; // n * p
     uword n_idv = Uty.n_elem;
     uword n_j = UtW.n_cols;
-    vec x_col(n_idv);
 
-    vec Utu(n_idv, arma::fill::zeros);
-    vec Ue(n_idv);
-    vec Ub(n_idv);
-
-    vec bv0(n_idv, arma::fill::zeros); // for computation of alpha
     vec bv(n_idv, arma::fill::zeros);  // for computation of alpha
-    vec V(n_idv, arma::fill::zeros);   // compute Utu
-    vec M(n_idv, arma::fill::zeros);   // compute Utu
-    vec snp_label(n_snp);
 
     vec Ealpha = Wbeta;                      // intercept
     vec post_Ealpha(n_j, arma::fill::zeros); // save intercept
@@ -196,14 +184,7 @@ auto gibbs_without_u_screen(
     kappa_k.fill(n_snp * (double)1 / n_k);
     vec lambda_k = arma::randu(n_k, arma::distr_param(0, 1));
 
-    // TODO: is xebeta just a zero vector with num elem UtX.n_row?
-    XEbeta.zeros(); // set to zero
-    // for (size_t i=0; i<n_snp; i++)   {
-    // x_col   =  UtX.col(i);
-    // XEbeta += x_col*beta(i);
-    // }
     XEbeta = UtX * beta; // ToDo: check with dan if this is bug should be beta instead?
-
     WEalpha = UtW * m_alpha;
 
     vec y_res = Uty - WEalpha - XEbeta;
@@ -213,10 +194,9 @@ auto gibbs_without_u_screen(
 
     double ak = 21;
     lambda = std::clamp(lambda, 0.01, 100.0);
-    double bk0 = lambda * (ak - 1) / n_snp;
 
     vec bk(n_k);
-    bk.at(0) = bk0;
+    bk.at(0) = lambda * (ak - 1) / n_snp;;
     for (size_t i = 1; i < n_k; i++)
     {
         bk.at(i) = bk.at(i - 1) * 1.7 * sqrt(pow(i, i));
@@ -224,10 +204,11 @@ auto gibbs_without_u_screen(
 
     sik2_beta = arma::repmat(bk.t(), n_snp, 1) / ((ak - 1) * sigma2e0);
 
-    double ae = 0.1;
-    double be = 0.1;
-    double a0 = 1;
-    double b0 = 0.1;
+    const double ae = 0.1;
+    const double be = 0.1;
+    const double a0 = 1;
+    const double b0 = 0.1;
+
     double a_lambda = a0 + n_k;
     double b_lambda = b0;
     double Elogsigmae, tx_ywx_res, xtxabk, A, post_Gn = 0;
@@ -260,271 +241,214 @@ auto gibbs_without_u_screen(
     a_e = n_idv + n_snp * 0.1 + ae;
     b_e = (A + B + 2 * be) / 2;
 
-    ////random seed
-    RandomSampler rs(0);
+    RandomSampler rs;
 
-    double pheno_mean; // TODO: see where it comes from and where it goes
-
-    if (n_k == 1)
-    {
-        // WritelmmBeta(beta);
-        pheno_mean = m_alpha(0);
-    }
     // //  begin MCMC sampling
-    else
+    ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
+    Rcpp::Rcout << progress_bar;
+    for (size_t S = 0; S < (w_step + s_step); S++)
     {
-        ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
-        Rcpp::Rcout << progress_bar;
-        for (size_t S = 0; S < (w_step + s_step); S++)
+
+        sigma2e = 1 / rs.gamma_sample(a_e, 1 / b_e);
+        Elogsigmae = log(sqrt(sigma2e));
+
+        // save Ebeta for the mixture normal component
+        Ebeta = arma::sum(beta_beta % gamma_beta, 1);
+
+        if (S > (w_step - 1))
         {
+            result.beta += Ebeta;
+        }
 
-            sigma2e = 1 / rs.gamma_sample(a_e, 1 / b_e);
-            Elogsigmae = log(sqrt(sigma2e));
-
-            // save Ebeta for the mixture normal component
-            Ebeta = arma::sum(beta_beta % gamma_beta, 1);
-
-            if (S > (w_step - 1))
+        // sample sigma2k and compute related quantities
+        for (size_t k = 0; k < n_k; k++)
+        {
+            if (k == 0)
             {
-                result.beta += Ebeta;
+                sigma2k.at(k) = 0;
+                Elogsigmak.at(k) = 0;
+                sumElogvl.at(k) = 0;
+            }
+            else
+            {
+                sigma2k.at(k) = 1 / rs.gamma_sample(a_k.at(k), 1 / b_k.at(k));
+                Elogsigmak.at(k) = log(sqrt(sigma2k.at(k)));
+                sumElogvl.at(k) = sumElogvl.at(k - 1) + log(1 - vk.at(k - 1));
             }
 
-            // sample sigma2k and compute related quantities
+            if (k == (n_k - 1))
+            {
+                vk.at(k) = 0;
+                Elogvk.at(k) = 0;
+            }
+            else
+            {
+                vk.at(k) = rs.beta_sample(kappa_k.at(k), lambda_k.at(k));
+                Elogvk.at(k) = log(vk.at(k));
+            }
+        }
+
+        XEbeta = UtX * Ebeta;
+
+        y_res = Uty - WEalpha;
+
+        H0 = (sigma2b * D) + 1;
+        H0 = 1 / H0;
+
+        //////////////////////////////////////
+        // full sampling, i.e., sampling effects for all the snps
+        // cout<<tp<<endl;
+        for (size_t i = 0; i < n_snp; i++)
+        {
+            XEbeta -= UtX.col(i) * Ebeta.at(i);
+
+            H = UtX.col(i) % H0;
+            tx_ywx_res = arma::dot(H, y_res - XEbeta);
+
             for (size_t k = 0; k < n_k; k++)
             {
+
                 if (k == 0)
                 {
-                    sigma2k.at(k) = 0;
-                    Elogsigmak.at(k) = 0;
-                    sumElogvl.at(k) = 0;
+                    mik_beta.at(i, k) = 0;
+                    sik2_beta.at(i, k) = 0;
+                    pikexp1.at(k) = 0;
                 }
+
                 else
                 {
-                    sigma2k.at(k) = 1 / rs.gamma_sample(a_k.at(k), 1 / b_k.at(k));
-                    Elogsigmak.at(k) = log(sqrt(sigma2k.at(k)));
-                    sumElogvl.at(k) = sumElogvl.at(k - 1) + log(1 - vk.at(k - 1));
+                    xtxabk = arma::dot(H, UtX.col(i)) + 1 / sigma2k.at(k);
+                    mik_beta.at(i, k) = tx_ywx_res / xtxabk;
+                    sik2_beta.at(i, k) = sigma2e / xtxabk;
+                    pikexp1.at(k) = mik_beta.at(i, k) * mik_beta.at(i, k) / (2 * sik2_beta.at(i, k)) +
+                                    log(sqrt(sik2_beta.at(i, k))) - Elogsigmae - Elogsigmak.at(k);
                 }
 
-                if (k == (n_k - 1))
-                {
-                    vk.at(k) = 0;
-                    Elogvk.at(k) = 0;
-                }
-                else
-                {
-                    vk.at(k) = rs.beta_sample(kappa_k.at(k), lambda_k.at(k));
-                    Elogvk.at(k) = log(vk.at(k));
-                }
+                beta_beta.at(i, k) = rs.gaussian_sample(sqrt(sik2_beta.at(i, k))) + mik_beta.at(i, k);
+                pikexp2.at(k) = Elogvk.at(k) + sumElogvl.at(k);
             }
 
-            //////////////  sampling the mixture snp effects
-            XEbeta.zeros(); // set Gbeta to zero first
-                            // for (size_t i=0; i<n_snp; i++)   {
-                            // x_col   =  UtX.col(i);
-                            // XEbeta += x_col*Ebeta(i);
-            //}
-            XEbeta = UtX * Ebeta;
+            index = pikexp1 + pikexp2;
+            index = arma::exp(index - arma::max(index));
+            pik_beta.row(i) = index.t() / arma::accu(index);
 
-            y_res.zeros();
-            y_res = Uty - WEalpha;
+            // multinomial sampling
+            double mult_prob[n_k];
+            int mult_no[n_k];
 
-            H0 = (sigma2b * D) + 1;
-            H0 = 1 / H0;
-
-            //////////////////////////////////////
-            // full sampling, i.e., sampling effects for all the snps
-            // cout<<tp<<endl;
-            for (size_t i = 0; i < n_snp; i++)
+            for (size_t k = 0; k < n_k; k++)
             {
-                x_col = UtX.col(i);
-                XEbeta -= x_col * Ebeta.at(i);
-
-                H = x_col % H0;
-                tx_ywx_res = arma::dot(H, y_res - XEbeta);
-
-                for (size_t k = 0; k < n_k; k++)
-                {
-
-                    if (k == 0)
-                    {
-                        mik_beta.at(i, k) = 0;
-                        sik2_beta.at(i, k) = 0;
-                        pikexp1.at(k) = 0;
-                    }
-
-                    else
-                    {
-                        xtxabk = arma::dot(H, x_col) + 1 / sigma2k.at(k);
-                        mik_beta.at(i, k) = tx_ywx_res / xtxabk;
-                        sik2_beta.at(i, k) = sigma2e / xtxabk;
-                        pikexp1.at(k) = mik_beta.at(i, k) * mik_beta.at(i, k) / (2 * sik2_beta.at(i, k)) +
-                                        log(sqrt(sik2_beta.at(i, k))) - Elogsigmae - Elogsigmak.at(k);
-                    }
-
-                    beta_beta.at(i, k) = rs.gaussian_sample(sqrt(sik2_beta.at(i, k))) + mik_beta.at(i, k);
-                    pikexp2.at(k) = Elogvk.at(k) + sumElogvl.at(k);
-                }
-
-                index = pikexp1 + pikexp2;
-                index = arma::exp(index - arma::max(index));
-                pik_beta.row(i) = index.t() / arma::accu(index);
-
-                // multinomial sampling
-                double mult_prob[n_k];
-                unsigned int mult_no[n_k];
-
-                for (size_t k = 0; k < n_k; k++)
-                {
-                    mult_prob[k] = pik_beta.at(i, k);
-                }
-
-                rs.multinomial_sample(n_k, 1, mult_prob, mult_no);
-                for (size_t k = 0; k < n_k; k++)
-                {
-                    gamma_beta.at(i, k) = mult_no[k];
-                }
-
-                Ebeta.at(i) = arma::dot(beta_beta.row(i), gamma_beta.row(i));
-                XEbeta += x_col * Ebeta.at(i);
+                mult_prob[k] = pik_beta.at(i, k);
             }
 
-            //////////////////////////////////////
-
-            if (S > (w_step - 1))
+            rs.multinomial_sample(n_k, 1, mult_prob, mult_no);
+            for (size_t k = 0; k < n_k; k++)
             {
-                post_gamma_beta += gamma_beta;
-            }
-            //////////////  sampling the mixture snp effects
-
-            WEalpha = UtW * Ealpha;
-
-            y_res.zeros();
-            y_res = Uty - XEbeta;
-            for (size_t j = 0; j < n_j; j++)
-            {
-                WEalpha -= UtW.col(j) * Ealpha.at(j);
-                H = UtW.col(j) % H0;
-                m_alpha.at(j) = arma::dot(H, y_res - WEalpha) / arma::dot(H, UtW.col(j));
-                s2_alpha.at(j) = sigma2e / arma::dot(H, UtW.col(j));
-                Ealpha.at(j) = m_alpha.at(j) + rs.gaussian_sample(sqrt(s2_alpha.at(j)));
-                WEalpha += UtW.col(j) * Ealpha.at(j);
+                gamma_beta.at(i, k) = mult_no[k];
             }
 
-            if (S > (w_step - 1))
-            {
-                post_Ealpha += Ealpha;
-            }
-
-            a_lambda = a0 + n_k;
-            b_lambda = b0 - sum_Elogvl2(vk, n_k - 1);
-            lambdax = rs.gamma_sample(a_lambda, 1 / b_lambda);
-
-            for (size_t k = 0; k < n_k - 1; k++)
-            {
-                kappa_k.at(k) = arma::accu(gamma_beta.col(k)) + 1;
-                lambda_k.at(k) = sum_lambda_k(gamma_beta, k, n_k) + lambdax;
-            }
-
-            Ebeta2k = beta_beta % beta_beta % gamma_beta;
-            a_k = arma::sum(gamma_beta, 0).t() / 2 + ak;
-            b_k = arma::sum(Ebeta2k, 0).t() / (2 * sigma2e) + bk;
-
-            /*y_res.setZero();
-            y_res = Uty - XEbeta - WEalpha;
-            for (size_t i=0; i<n_idv; i++) {
-                V(i)  = sigma2b*D(i)/(sigma2b*D(i) + 1);
-                M(i)  = y_res(i)*V(i);
-                Utu(i)= M(i) + gsl_ran_gaussian(rs,sqrt(V(i)*sigma2e));
-                if (D(i)  == 0) {
-                    Ue(i) = 0;
-                    Ub(i) = 0;
-                    }
-                else {
-                    Ue(i) = Utu(i)/(sigma2b*D(i)); //for sigma2e
-                    Ub(i) = Utu(i)/(sigma2e*D(i)); //for sigma2b
-                }
-                bv0(i) = y_res(i)*sigma2b/(sigma2b*D(i) + 1);
-                }
-
-            if (S>(w_step-1))   {bv += bv0;}
-            */
-
-            y_res.zeros();
-            y_res = Uty - XEbeta - WEalpha;
-
-            bv0 = (y_res * sigma2b) % H0;
-            if (S > (w_step - 1))
-            {
-                bv += bv0;
-            }
-
-            H = y_res % H0;
-
-            A = arma::dot(H, y_res);
-            B1 = arma::repmat(1 / sigma2k.tail(n_k - 1), 1, n_snp); // repeat each row n_snp times
-            Ebeta2k = Ebeta2k.cols(Ebeta2k.n_cols - n_k + 1, Ebeta2k.n_cols - 1) % B1.t();
-            double B = arma::accu(Ebeta2k);
-            double Gn = arma::accu(gamma_beta.cols(gamma_beta.n_cols - n_k + 1, gamma_beta.n_cols - 1));
-
-            a_e = n_idv / 2 + Gn / 2 + ae;
-            b_e = (A + B + 2 * be) / 2;
-
-            /*double sigma2bX_new = sigma2bX(S) + gsl_ran_gaussian(rs,sqrt(1));
-            double ratio1 = log_sigma2b(D,y_res,sigma2bX_new,sigma2e,ae,be);
-            double ratio2 = log_sigma2b(D,y_res,sigma2bX(S), sigma2e,ae,be);
-            double ratio  = exp(ratio1-ratio2);
-            if (ratio>1) {ratio = 1;}
-            else         {ratio = ratio;}
-            if (sigma2bX_new<0) {ratio = 0;}
-            */
-
-            // double h_new  = gsl_rng_uniform(rs);
-            double h_new = rs.beta_sample(2, 8);
-            double ratio1 = log_h(D, y_res, h_new, sigma2e, ae, be) - log(rs.beta_pdf_val(h_new, 2, 8));
-            double ratio2 = log_h(D, y_res, h(S), sigma2e, ae, be) - log(rs.beta_pdf_val(h(S), 2, 8));
-            double ratio = exp(ratio1 - ratio2);
-            if (ratio > 1)
-            {
-                ratio = 1;
-            }
-            else
-            {
-                ratio = ratio;
-            }
-            double u = rs.uniform_sample();
-            if (u < ratio)
-            {
-                h(S + 1) = h_new;
-            }
-            else
-            {
-                h(S + 1) = h(S);
-            }
-
-            sigma2b = h(S + 1) / (1 - h(S + 1));
-
-            if (S > (w_step - 1))
-            {
-                post_Gn += Gn;
-            }
-            ////////////////////////////////////
-
-            double llike0 = logLike(D, y_res, sigma2b, sigma2e);
-            llike(S) = llike0;
-
-            if (S > (w_step - 1))
-            {
-                post_llike += llike0;
-                post_sigma2e += sigma2e;
-                post_sigma2b += sigma2b;
-            }
-
-            progress_bar.advance();
-            Rcpp::Rcout << progress_bar;
+            Ebeta.at(i) = arma::dot(beta_beta.row(i), gamma_beta.row(i));
+            XEbeta += UtX.col(i) * Ebeta.at(i);
         }
-    }
 
-    Rcpp::Rcout << std::endl << "MCMC sampling is finished" << std::endl;
+        //////////////////////////////////////
+
+        if (S > (w_step - 1))
+        {
+            post_gamma_beta += gamma_beta;
+        }
+        //////////////  sampling the mixture snp effects
+
+        WEalpha = UtW * Ealpha;
+
+        y_res = Uty - XEbeta;
+        for (size_t j = 0; j < n_j; j++)
+        {
+            WEalpha -= UtW.col(j) * Ealpha.at(j);
+            H = UtW.col(j) % H0;
+            m_alpha.at(j) = arma::dot(H, y_res - WEalpha) / arma::dot(H, UtW.col(j));
+            s2_alpha.at(j) = sigma2e / arma::dot(H, UtW.col(j));
+            Ealpha.at(j) = m_alpha.at(j) + rs.gaussian_sample(sqrt(s2_alpha.at(j)));
+            WEalpha += UtW.col(j) * Ealpha.at(j);
+        }
+
+        if (S > (w_step - 1))
+        {
+            post_Ealpha += Ealpha;
+        }
+
+        a_lambda = a0 + n_k;
+        b_lambda = b0 - sum_Elogvl2(vk, n_k - 1);
+        lambdax = rs.gamma_sample(a_lambda, 1 / b_lambda);
+
+        for (size_t k = 0; k < n_k - 1; k++)
+        {
+            kappa_k.at(k) = arma::accu(gamma_beta.col(k)) + 1;
+            lambda_k.at(k) = sum_lambda_k(gamma_beta, k, n_k) + lambdax;
+        }
+
+        Ebeta2k = beta_beta % beta_beta % gamma_beta;
+        a_k = arma::sum(gamma_beta, 0).t() / 2 + ak;
+        b_k = arma::sum(Ebeta2k, 0).t() / (2 * sigma2e) + bk;
+
+        y_res = Uty - XEbeta - WEalpha;
+
+        if (S > (w_step - 1))
+        {
+            bv += (y_res * sigma2b) % H0;
+        }
+
+        H = y_res % H0;
+
+        A = arma::dot(H, y_res);
+        B1 = arma::repmat(1 / sigma2k.tail(n_k - 1), 1, n_snp); // repeat each row n_snp times
+        Ebeta2k = Ebeta2k.cols(Ebeta2k.n_cols - n_k + 1, Ebeta2k.n_cols - 1) % B1.t();
+        double B = arma::accu(Ebeta2k);
+        double Gn = arma::accu(gamma_beta.cols(gamma_beta.n_cols - n_k + 1, gamma_beta.n_cols - 1));
+
+        a_e = n_idv / 2 + Gn / 2 + ae;
+        b_e = (A + B + 2 * be) / 2;
+
+        double h_new = rs.beta_sample(2, 8);
+        double ratio1 = log_h(D, y_res, h_new, sigma2e, ae, be) - log(rs.beta_pdf_val(h_new, 2, 8));
+        double ratio2 = log_h(D, y_res, h(S), sigma2e, ae, be) - log(rs.beta_pdf_val(h(S), 2, 8));
+        double ratio = exp(ratio1 - ratio2);
+        if (ratio > 1)
+        {
+            ratio = 1;
+        }
+
+        double u = rs.uniform_sample();
+        if (u < ratio)
+        {
+            h(S + 1) = h_new;
+        }
+        else
+        {
+            h(S + 1) = h(S);
+        }
+
+        sigma2b = h(S + 1) / (1 - h(S + 1));
+
+        if (S > (w_step - 1))
+        {
+            post_Gn += Gn;
+        }
+        ////////////////////////////////////
+
+        double llike0 = logLike(D, y_res, sigma2b, sigma2e);
+        llike(S) = llike0;
+
+        if (S > (w_step - 1))
+        {
+            post_llike += llike0;
+            post_sigma2e += sigma2e;
+            post_sigma2b += sigma2b;
+        }
+
+        progress_bar.advance();
+        Rcpp::Rcout << progress_bar;
+    }
 
     result.alpha = UtX.t() * (bv / s_step) / n_snp;
     result.beta /=  s_step;
@@ -682,7 +606,7 @@ auto VB(
         while ((int_step < max_step) && (delta > 1e-7))
         {
 
-            Elogsigmae = 0.5 * (log(b_e) - gsl_sf_psi(a_e));
+            Elogsigmae = 0.5 * (log(b_e) - R::digamma(a_e));
             //////////////  sampling the mixture snp effects
             XEbeta = UtX * result.beta;
 
@@ -711,7 +635,7 @@ auto VB(
                         xtxabk = xtx.at(i) + a_k.at(k) / b_k.at(k);
                         mik_beta.at(i, k) = tx_ywx_res / xtxabk;
                         sik2_beta.at(i, k) = ba_e / xtxabk;
-                        Elogsigmak.at(k) = 0.5 * (log(b_k.at(k)) - gsl_sf_psi(a_k.at(k)));
+                        Elogsigmak.at(k) = 0.5 * (log(b_k.at(k)) - R::digamma(a_k.at(k)));
                         pikexp1.at(k) = pow(mik_beta.at(i, k), 2) / (2 * sik2_beta.at(i, k)) +
                                         log(sqrt(sik2_beta.at(i, k))) - Elogsigmae - Elogsigmak.at(k);
                         // pikexp1(k)     =-pow(mik_beta(i,k),2)*(a_k(k)/b_k(k))*ab_e/2- Elogsigmae - Elogsigmak(k);
@@ -722,7 +646,7 @@ auto VB(
                     // Elogvk(k) = 0;
                     // }
                     // else   {
-                    Elogvk.at(k) = gsl_sf_psi(kappa_k.at(k)) - gsl_sf_psi(kappa_k.at(k) + lambda_k.at(k));
+                    Elogvk.at(k) = R::digamma(kappa_k.at(k)) - R::digamma(kappa_k.at(k) + lambda_k.at(k));
                     //}
 
                     sumElogvl.at(k) = sum_Elogvl(lambda_k, kappa_k, k);
@@ -733,36 +657,8 @@ auto VB(
                 index = arma::exp(index - arma::max(index));
                 pik_beta.row(i) = index.t() / arma::accu(index);
 
-                /*
-                /// sort sik2_beta and pik_beta
-                gsl_vector *index0 = gsl_vector_alloc (n_k);
-                gsl_vector *sik2_beta0 = gsl_vector_alloc (n_k);
-                for (size_t k=0; k<n_k; k++)   {
-                    gsl_vector_set(index0,k,index(k));
-                    gsl_vector_set(sik2_beta0,k,sik2_beta(i,k));
-                    }
-                //gsl_sort_vector(index0);
-                //gsl_vector_reverse(index0);
-                gsl_permutation * perm0 = gsl_permutation_alloc (n_k);
-                gsl_vector *perm1 = gsl_vector_alloc (n_k);
-                VectorXd perm2(n_k);
-                gsl_permutation_init (perm0);
-                gsl_sort_vector_index (perm0, sik2_beta0);
-                gsl_sort_vector(sik2_beta0);
-                for (size_t k=0; k<n_k; k++)   {
-                    sik2_beta(i,k) = gsl_vector_get(sik2_beta0,k);
-                    gsl_vector_set(perm1, k, perm0->data[k]);
-                    perm2(k) = gsl_vector_get(perm1,k);
-                    index(k) = gsl_vector_get(index0,perm2(k));
-                    }*/
-
-                // pik_beta.row(i) = index/index.sum();
                 result.beta.at(i) = arma::dot(mik_beta.row(i), pik_beta.row(i));
                 XEbeta += x_col * result.beta.at(i);
-                // cout<<setprecision(7)<<sik2_beta.row(i)<<" ";
-                // cout<<" "<<perm2(0)<<" "<<perm2(1)<<" "<<perm2(2)<<" "<<perm2(3)<<endl;
-                // cout<<" "<<pik_beta.row(i)<<endl;
-                /// sort sik2_beta and pik_beta
             }
             //////////////  sampling the mixture snp effects
 
@@ -851,23 +747,10 @@ auto VB(
 
     y_res = Uty - XEbeta - WEalpha;
     bv = y_res / (D + (a_b / b_b));
-    Rcpp::Rcout << "Compute the polygenic effects ..." << endl;
-    Rcpp::Rcout << "variational bayes is finished" << endl;
-    /*
-    gsl_vector *gsl_bv    = gsl_vector_alloc (n_idv);
-    gsl_vector *gsl_alpha = gsl_vector_alloc (n_snp);
-    gsl_vector_set_zero (gsl_bv);
-    VectorXd eigen_alpha = VectorXd::Zero (n_snp);
-    for (size_t i=0; i<n_idv; i++) {
-        gsl_vector_set (gsl_bv,i,bv(i));
-    }
-    gsl_blas_dgemv (CblasTrans,1.0/(double)n_snp,UtX,gsl_bv,0.0,gsl_alpha);
-    for (size_t i = 0; i < n_snp; i++) {
-        eigen_alpha(i) = gsl_vector_get(gsl_alpha, i);
-        }
-    */
 
     result.alpha = UtX.t() * bv / n_snp;
+
+    Rcpp::Rcout << "variational bayes is finished" << endl;
 
     return result;
 }

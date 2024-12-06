@@ -1,6 +1,14 @@
 #include "utils.h"
 #include <filesystem>
 
+namespace logging_utils {
+
+void log( ) {
+
+}
+
+}
+
 std::unique_ptr<gsl_matrix> arma_mat_to_gsl_mat(const arma::mat& arma_mat)
 {
     // Get the dimensions of the Armadillo matrix
@@ -103,14 +111,14 @@ std::ofstream get_output_file(const char* file_name) {
     // Create the folder if it doesn't already exist
     if (!folder_path.empty() && !fs::exists(folder_path)) {
         fs::create_directories(folder_path);
-        std::cout << "Folder created: " << folder_path << std::endl;
+        Rcpp::Rcout << "Folder created: " << folder_path << std::endl;
     } else {
-        std::cout << "Folder already exists or no folder specified." << std::endl;
+        Rcpp::Rcout << "Folder already exists or no folder specified." << std::endl;
     }
 
     std::ofstream outfile(file_name);
     if (!outfile.is_open()) {
-        std::cerr << "Could not open file for writing." << std::endl;
+        Rcpp::Rcerr << "Could not open file for writing." << std::endl;
         exit(1);
     } 
 

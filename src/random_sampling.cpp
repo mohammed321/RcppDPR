@@ -1,35 +1,26 @@
 #include "random_sampling.h"
-#include <gsl/gsl_randist.h>
-
-RandomSampler::RandomSampler(const unsigned long int seed) {
-    m_rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(m_rng, seed);
-};
-
-RandomSampler::~RandomSampler() {
-    gsl_rng_free(m_rng);
-}
+#include <Rcpp.h>
 
 double RandomSampler::gamma_sample(const double a, const double b) {
-    return gsl_ran_gamma(m_rng, a, b);
+    return R::rgamma(a, b);
 }
 
 double RandomSampler::beta_sample(const double a, const double b) {
-    return gsl_ran_beta(m_rng, a, b);
+    return R::rbeta(a, b);
 }
 
 double RandomSampler::gaussian_sample(const double sigma) {
-    return gsl_ran_gaussian(m_rng, sigma);
+    return R::rnorm(0.0, sigma);
 }
 
-void RandomSampler::multinomial_sample(size_t K, unsigned int N, const double p[], unsigned int n[]) {
-    gsl_ran_multinomial(m_rng, K, N, p, n);
+void RandomSampler::multinomial_sample(int K, int N, double p[], int n[]) {
+    R::rmultinom(N, p, K, n);
 }
 
 double RandomSampler::beta_pdf_val(const double x, const double a, const double b) {
-    return gsl_ran_beta_pdf(x, a, b);
+    return R::dbeta(x, a, b, false);
 }
 
 double RandomSampler::uniform_sample() {
-    return gsl_rng_uniform(m_rng);
+    return R::runif(0.0, 1.0);
 }
