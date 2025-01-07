@@ -44,6 +44,9 @@ get_results <- function() {
 
   set.seed(42)
   adaptive_gibbs_without_u_screen_result <<- run_gibbs_without_u_screen_adaptive(y, w, x)
+
+  set.seed(42)
+  gibbs_without_u_screen_resultnk6 <<- run_gibbs_without_u_screen(y,w,x, n_k = 6)
 }
 
 get_results()

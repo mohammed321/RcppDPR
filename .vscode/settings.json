@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "iomanip": "cpp",
+        "armadillo": "cpp",
+        "__locale": "cpp",
+        "optional": "cpp",
+        "tuple": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "span": "cpp"
+    }
+}

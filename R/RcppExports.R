@@ -5,15 +5,23 @@ run_VB <- function(y, W, X, n_k = 4L, l_min = 1e-7, l_max = 1e5, n_region = 10L)
     .Call(`_RcppDPR_run_VB`, y, W, X, n_k, l_min, l_max, n_region)
 }
 
+run_VB_custom_kinship <- function(y, W, X, G, n_k = 4L, l_min = 1e-7, l_max = 1e5, n_region = 10L) {
+    .Call(`_RcppDPR_run_VB_custom_kinship`, y, W, X, G, n_k, l_min, l_max, n_region)
+}
+
 run_gibbs_without_u_screen <- function(y, W, X, n_k = 4L, w_step = 1000L, s_step = 1000L, l_min = 1e-7, l_max = 1e5, n_region = 10L) {
     .Call(`_RcppDPR_run_gibbs_without_u_screen`, y, W, X, n_k, w_step, s_step, l_min, l_max, n_region)
+}
+
+run_gibbs_without_u_screen_custom_kinship <- function(y, W, X, G, n_k = 4L, w_step = 1000L, s_step = 1000L, l_min = 1e-7, l_max = 1e5, n_region = 10L) {
+    .Call(`_RcppDPR_run_gibbs_without_u_screen_custom_kinship`, y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region)
 }
 
 run_gibbs_without_u_screen_adaptive <- function(y, W, X, m_n_k = 6L, w_step = 1000L, s_step = 1000L, l_min = 1e-7, l_max = 1e5, n_region = 10L) {
     .Call(`_RcppDPR_run_gibbs_without_u_screen_adaptive`, y, W, X, m_n_k, w_step, s_step, l_min, l_max, n_region)
 }
 
-rcpp_hello <- function() {
-    .Call(`_RcppDPR_rcpp_hello`)
+run_gibbs_without_u_screen_adaptive_custom_kinship <- function(y, W, X, G, m_n_k = 6L, w_step = 1000L, s_step = 1000L, l_min = 1e-7, l_max = 1e5, n_region = 10L) {
+    .Call(`_RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship`, y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region)
 }
 

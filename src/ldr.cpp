@@ -129,7 +129,12 @@ auto gibbs_without_u_screen(
     struct Result {
         vec alpha;
         vec beta;
+        double pD1;
+        double pD2;
         double DIC1;
+        double DIC2;
+        double BIC1;
+        double BIC2;
     } result;
 
     clock_t time_begin = clock();
@@ -453,9 +458,23 @@ auto gibbs_without_u_screen(
     result.alpha = UtX.t() * (bv / s_step) / n_snp;
     result.beta /=  s_step;
 
+    XEbeta = UtX * result.beta;
+    WEalpha = UtW * post_Ealpha / s_step;
+    y_res = Uty - XEbeta - WEalpha;
+
     double llike_hat = logLike(D, y_res, post_sigma2b / s_step, post_sigma2e / s_step);
-    double pD1 = 2 * (llike_hat - post_llike / s_step);
-    result.DIC1 = -2 * llike_hat + 2 * pD1;
+    vec llike2 = llike.tail(s_step);
+    llike2 -= arma::accu(llike2) / s_step;
+    result.pD1 = 2 * (llike_hat - post_llike / s_step);
+    result.pD2 = 2 * arma::dot(llike2, llike2) / (s_step - 1);
+    if (result.pD1 < 0)
+    {
+        result.pD1 = 1;
+    }
+    result.DIC1 = -2 * llike_hat + 2 * result.pD1;
+    result.DIC2 = -2 * llike_hat + 2 * result.pD2;
+    result.BIC1 = -2 * llike_hat + log(n_idv) * result.pD1;
+    result.BIC2 = -2 * llike_hat + log(n_idv) * result.pD2;
 
     return result;
 }
@@ -474,6 +493,7 @@ auto VB(
     struct Result {
         vec alpha;
         vec beta;
+        vec ELBO;
     } result;
 
     setprecision(5);
@@ -749,6 +769,7 @@ auto VB(
     bv = y_res / (D + (a_b / b_b));
 
     result.alpha = UtX.t() * bv / n_snp;
+    result.ELBO = ELBO.head(int_step);
 
     Rcpp::Rcout << "variational bayes is finished" << endl;
 
@@ -771,13 +792,13 @@ auto gibbs_without_u_screen_adaptive(
     Rcpp::Rcout << "Now start to adaptively select nk..." << std::endl;
     double min_dic = 10e100;
     size_t n_k = 4;
-    double sp = 0.1;
+    double sp = 0.1; // todo: add to func param
 
     for (size_t j = 0; j < (m_n_k - 1); j++)
     {
         Rcpp::Rcout << "nk == " << j + 2 << std::endl;
         // cLdr.Gibbs_without_u_screen_dic0(UtX, y0, W0, D, Wbeta0, se_Wbeta0, beta, snp_no, lambda, j + 2);
-        auto [_unused1, _unused2, DIC1] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
+        auto [_unused1, _unused2, _unused3, unused4, DIC1, _unused5, _unused6, _unused7] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
                                                             j + 2,
                                                             w_step * sp,
                                                             s_step * sp);
@@ -804,6 +825,7 @@ auto setup(
     vec &y,
     mat &W,
     mat &X,
+    mat &G,
     double l_min,
     double l_max,
     size_t n_region
@@ -819,9 +841,6 @@ auto setup(
         vec beta;
         double l_remle_null;
     } result;
-
-    // Compute relatedness matrix...
-    mat G = (X * X.t()) / X.n_cols;
 
     // eigen-decomposition and calculate trace_G
     mat U(y.n_elem, y.n_elem); // eigen vectors
@@ -860,6 +879,39 @@ auto setup(
     return result;
 }
 
+Rcpp::List run_gibbs_without_u_screen_custom_kinship(
+    vec &y,
+    mat &W,
+    mat &X,
+    mat &G,
+    size_t n_k,
+    size_t w_step,
+    size_t s_step,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
+
+    auto [alpha_vec, beta_vec, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
+                                                            n_k,
+                                                            w_step,
+                                                            s_step);
+
+    return Rcpp::List::create(
+                        Rcpp::Named("alpha") = alpha_vec,
+	                    Rcpp::Named("beta") = beta_vec,
+                        Rcpp::Named("pD1") = pD1,
+                        Rcpp::Named("pD2") = pD2,
+                        Rcpp::Named("DIC1") = DIC1,
+                        Rcpp::Named("DIC2") = DIC2,
+                        Rcpp::Named("BIC1") = BIC1,
+                        Rcpp::Named("BIC2") = BIC2
+                    );
+
+}
+
 Rcpp::List run_gibbs_without_u_screen(
     vec &y,
     mat &W,
@@ -872,16 +924,39 @@ Rcpp::List run_gibbs_without_u_screen(
     size_t n_region
     )
 {
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
+    mat G = (X * X.t()) / X.n_cols;
+    return run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region);
+}
 
-    auto [alpha_vec, beta_vec, _] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
-                                                            n_k,
+Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
+    vec &y,
+    mat &W,
+    mat &X,
+    mat &G,
+    size_t m_n_k,
+    size_t w_step,
+    size_t s_step,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
+
+    auto [alpha_vec, beta_vec, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
+                                                            m_n_k,
                                                             w_step,
                                                             s_step);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec
+	                    Rcpp::Named("beta") = beta_vec,
+                        Rcpp::Named("pD1") = pD1,
+                        Rcpp::Named("pD2") = pD2,
+                        Rcpp::Named("DIC1") = DIC1,
+                        Rcpp::Named("DIC2") = DIC2,
+                        Rcpp::Named("BIC1") = BIC1,
+                        Rcpp::Named("BIC2") = BIC2
                     );
 }
 
@@ -897,16 +972,29 @@ Rcpp::List run_gibbs_without_u_screen_adaptive(
     size_t n_region
     )
 {
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
+    mat G = (X * X.t()) / X.n_cols;
+    return run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region);
+}
 
-    auto [alpha_vec, beta_vec, _] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
-                                                            m_n_k,
-                                                            w_step,
-                                                            s_step);
+Rcpp::List run_VB_custom_kinship(
+    vec &y,
+    mat &W,
+    mat &X,
+    mat &G,
+    size_t n_k,
+    double l_min,
+    double l_max,
+    size_t n_region
+    )
+{
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
+
+    auto [alpha_vec, beta_vec, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec
+	                    Rcpp::Named("beta") = beta_vec,
+	                    Rcpp::Named("ELBO") = ELBO_vec
                     );
 }
 
@@ -920,13 +1008,6 @@ Rcpp::List run_VB(
     size_t n_region
     )
 {
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, l_min, l_max, n_region);
-
-    auto [alpha_vec, beta_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
-
-    return Rcpp::List::create(
-                        Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec
-                    );
+    mat G = (X * X.t()) / X.n_cols;
+    return run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region);
 }
-
