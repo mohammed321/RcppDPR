@@ -496,7 +496,6 @@ auto VB(
         vec ELBO;
     } result;
 
-    setprecision(5);
     clock_t time_begin = clock();
 
     size_t n_snp = UtX.n_cols;
@@ -771,7 +770,7 @@ auto VB(
     result.alpha = UtX.t() * bv / n_snp;
     result.ELBO = ELBO.head(int_step);
 
-    Rcpp::Rcout << "variational bayes is finished" << endl;
+    Rcpp::Rcout << "variational bayes is finished" << std::endl;
 
     return result;
 }
@@ -810,8 +809,8 @@ auto gibbs_without_u_screen_adaptive(
         }
     }
 
-    cout << "The adaptive selection procedure is finished nk == " << n_k << " was selcted with DIC " << min_dic << endl;
-    cout << "Now start to MCMC sampling with adaptively selected nk..." << endl;
+    Rcpp::Rcout << "The adaptive selection procedure is finished nk == " << n_k << " was selcted with DIC " << min_dic << std::endl;
+    Rcpp::Rcout << "Now start to MCMC sampling with adaptively selected nk..." << std::endl;
     // cLdr.Gibbs_without_u_screen_dic1(UtX, y0, W0, D, Wbeta0, se_Wbeta0, beta, snp_no, lambda, n_k);
 
     return gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
@@ -859,19 +858,9 @@ auto setup(
     double vg_remle_null;
     double ve_remle_null;
 
-    CalcLambda('R', arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
-
-    CalcPve(arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), result.l_remle_null, trace_G, pve_null, pve_se_null);
-
-    gsl_vector *gsl_Wbeta = gsl_vector_alloc(W.n_cols);
-    gsl_vector *gsl_se_Wbeta = gsl_vector_alloc(W.n_cols);
-
-    CalcLmmVgVeBeta(arma_vec_to_gsl_vec(result.eigen_values).get(), arma_mat_to_gsl_mat(result.UtW).get(), arma_vec_to_gsl_vec(result.Uty).get(), result.l_remle_null, vg_remle_null, ve_remle_null, gsl_Wbeta, gsl_se_Wbeta);
-
-    result.Wbeta = gsl_vec_to_arma_vec(gsl_Wbeta);
-    result.se_Wbeta = gsl_vec_to_arma_vec(gsl_se_Wbeta);
-    gsl_vector_free(gsl_Wbeta);
-    gsl_vector_free(gsl_se_Wbeta);
+    CalcLambda('R', result.eigen_values, result.UtW, result.Uty, l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
+    // CalcPve(result.eigen_values, result.UtW, result.Uty, result.l_remle_null, trace_G, pve_null, pve_se_null);
+    CalcLmmVgVeBeta(result.eigen_values, result.UtW, result.Uty, result.l_remle_null, vg_remle_null, ve_remle_null, result.Wbeta, result.se_Wbeta);
 
     result.beta = result.l_remle_null * result.UtX.t() * ((U.t() * (y - (W * result.Wbeta))) / (result.eigen_values * result.l_remle_null + 1.0)) / result.UtX.n_cols;
     result.Uty -= arma::mean(result.Uty);
@@ -892,7 +881,7 @@ Rcpp::List run_gibbs_without_u_screen_custom_kinship(
     size_t n_region
     )
 {
-     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
+    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
 
     auto [alpha_vec, beta_vec, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             n_k,
