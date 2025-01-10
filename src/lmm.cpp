@@ -776,6 +776,8 @@ void CalcUab(const mat &UtW, const vec &Uty, mat &Uab)
 	}
 }
 
+#include <Rcpp.h>
+
 void CalcLambda(const char func_name, FUNC_PARAM &params, const double l_min, const double l_max, const size_t n_region, double &lambda, double &logf)
 {
 	if (func_name != 'R' && func_name != 'L' && func_name != 'r' && func_name != 'l')
@@ -858,10 +860,12 @@ void CalcLambda(const char func_name, FUNC_PARAM &params, const double l_min, co
 			fdfx = LogL_dev12;
 		}
 
-		logf_l = std::numeric_limits<double>::max();
+		logf = -std::numeric_limits<double>::infinity();
 
 		for (const auto &[lambda_l, lambda_h] : lambda_lh)
+
 		{
+
 			l = solve_root_brent(fx, &params, lambda_l, lambda_h);
 
 			l = solve_root_newton(fx, dfx, fdfx, &params, l, l_min, l_max);

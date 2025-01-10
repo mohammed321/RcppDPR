@@ -21,6 +21,7 @@
         "map": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "limits": "cpp"
     }
 }
