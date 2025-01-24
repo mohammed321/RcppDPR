@@ -39,7 +39,7 @@ size_t GetabIndex(const size_t a, const size_t b, const size_t n_cvt)
 {
 	if (a > n_cvt + 2 || b > n_cvt + 2 || a <= 0 || b <= 0)
 	{
-		cout << "error in GetabIndex." << endl;
+		Rcpp::Rcout << "error in GetabIndex." << endl;
 		return 0;
 	}
 	size_t index;
@@ -782,7 +782,7 @@ void CalcLambda(const char func_name, FUNC_PARAM &params, const double l_min, co
 {
 	if (func_name != 'R' && func_name != 'L' && func_name != 'r' && func_name != 'l')
 	{
-		cout << "func_name only takes 'R' or 'L': 'R' for log-restricted likelihood, 'L' for log-likelihood." << endl;
+		Rcpp::Rcout << "func_name only takes 'R' or 'L': 'R' for log-restricted likelihood, 'L' for log-likelihood." << endl;
 		return;
 	}
 
@@ -863,11 +863,8 @@ void CalcLambda(const char func_name, FUNC_PARAM &params, const double l_min, co
 		logf = -std::numeric_limits<double>::infinity();
 
 		for (const auto &[lambda_l, lambda_h] : lambda_lh)
-
 		{
-
 			l = solve_root_brent(fx, &params, lambda_l, lambda_h);
-
 			l = solve_root_newton(fx, dfx, fdfx, &params, l, l_min, l_max);
 
 			if (func_name == 'R' || func_name == 'r')
@@ -915,7 +912,7 @@ void CalcLambda(const char func_name, const vec &eval, const mat &UtW, const vec
 {
 	if (func_name != 'R' && func_name != 'L' && func_name != 'r' && func_name != 'l')
 	{
-		cout << "func_name only takes 'R' or 'L': 'R' for log-restricted likelihood, 'L' for log-likelihood." << endl;
+		Rcpp::Rcout << "func_name only takes 'R' or 'L': 'R' for log-restricted likelihood, 'L' for log-likelihood." << endl;
 		return;
 	}
 

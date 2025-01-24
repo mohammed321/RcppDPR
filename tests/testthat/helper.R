@@ -37,16 +37,13 @@ get_results <- function() {
   w <- matrix(1.0, nrow = length(y), ncol = 1)
 
   set.seed(42)
-  gibbs_without_u_screen_result <<- run_gibbs_without_u_screen(y,w,x)
+  dpr_model_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Gibbs")
 
   set.seed(42)
-  VB_result <<- run_VB(y,w,x)
+  dpr_model_vb <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "VB")
 
   set.seed(42)
-  adaptive_gibbs_without_u_screen_result <<- run_gibbs_without_u_screen_adaptive(y, w, x)
-
-  set.seed(42)
-  gibbs_without_u_screen_resultnk6 <<- run_gibbs_without_u_screen(y,w,x, n_k = 6)
+  dpr_model_adaptive_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Adaptive_Gibbs")
 }
 
 get_results()

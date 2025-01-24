@@ -1,10 +1,8 @@
 #include "ldr.h"
-#include <math.h>
-#include "lmm.h"
 #include "random_sampling.h"
 #include "utils.h"
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
+
+#include <math.h>
 
 using arma::uword;
 
@@ -113,7 +111,7 @@ double log_h(const vec &D, const vec &y_res, double h, double sigma2e, double ae
     return log_density;
 }
 
-auto gibbs_without_u_screen(
+gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_screen(
     const mat &UtX,
     const vec &Uty,
     const mat &UtW,
@@ -126,18 +124,7 @@ auto gibbs_without_u_screen(
     size_t w_step,
     size_t s_step)
 {
-    struct Result {
-        vec alpha;
-        vec beta;
-        double pD1;
-        double pD2;
-        double DIC1;
-        double DIC2;
-        double BIC1;
-        double BIC2;
-    } result;
-
-    clock_t time_begin = clock();
+    gibbs_without_u_screen_NS::Result result;
 
     uword n_snp = UtX.n_cols; // n * p
     uword n_idv = Uty.n_elem;
@@ -457,6 +444,8 @@ auto gibbs_without_u_screen(
 
     result.alpha = UtX.t() * (bv / s_step) / n_snp;
     result.beta /=  s_step;
+    result.post_Ealpha = post_Ealpha;
+    result.pheno_mean = post_Ealpha(0)/s_step;
 
     XEbeta = UtX * result.beta;
     WEalpha = UtW * post_Ealpha / s_step;
@@ -479,7 +468,7 @@ auto gibbs_without_u_screen(
     return result;
 }
 
-auto VB(
+VB_NS::Result VB_NS::VB(
     const mat &UtX,
     const vec &Uty,
     const mat &UtW,
@@ -490,13 +479,7 @@ auto VB(
     double lambda,
     size_t n_k)
 {
-    struct Result {
-        vec alpha;
-        vec beta;
-        vec ELBO;
-    } result;
-
-    clock_t time_begin = clock();
+    VB_NS::Result result;
 
     size_t n_snp = UtX.n_cols;
     size_t n_idv = Uty.n_elem;
@@ -512,7 +495,6 @@ auto VB(
     vec snp_label(n_snp);
 
     vec Ealpha = Wbeta;					// intercept
-    vec post_Ealpha(n_j, arma::fill::zeros); // save intercept
     vec m_alpha = Wbeta;
     vec s2_alpha = arma::square(se_Wbeta); // element wise square
 
@@ -612,12 +594,10 @@ auto VB(
     double delta = 10;
     vec ELBO(max_step, arma::fill::zeros);
 
-    double pheno_mean;
-
     // WritelmmBeta(beta);
     if (n_k == 1)
     {
-        pheno_mean = m_alpha(0);
+        result.pheno_mean = m_alpha(0);
     }
     /////////////////// variational bayesian/////////////
     else
@@ -764,6 +744,8 @@ auto VB(
         }
     }
 
+    result.pheno_mean = Ealpha(0);
+
     y_res = Uty - XEbeta - WEalpha;
     bv = y_res / (D + (a_b / b_b));
 
@@ -775,7 +757,7 @@ auto VB(
     return result;
 }
 
-auto gibbs_without_u_screen_adaptive(
+gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_screen_adaptive(
     const mat &UtX,
     const vec &Uty,
     const mat &UtW,
@@ -797,7 +779,7 @@ auto gibbs_without_u_screen_adaptive(
     {
         Rcpp::Rcout << "nk == " << j + 2 << std::endl;
         // cLdr.Gibbs_without_u_screen_dic0(UtX, y0, W0, D, Wbeta0, se_Wbeta0, beta, snp_no, lambda, j + 2);
-        auto [_unused1, _unused2, _unused3, unused4, DIC1, _unused5, _unused6, _unused7] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
+        auto [_unused1, _unused2, _unused3, unused4, _unused5, _unused6, DIC1, _unused7, _unused8, _unused9] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
                                                             j + 2,
                                                             w_step * sp,
                                                             s_step * sp);
@@ -819,184 +801,3 @@ auto gibbs_without_u_screen_adaptive(
                                                             s_step);
 }
 
-
-auto setup(
-    vec &y,
-    mat &W,
-    mat &X,
-    mat &G,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    struct Result {
-        mat UtX;
-        vec Uty;
-        mat UtW;
-        vec eigen_values;
-        vec Wbeta;
-        vec se_Wbeta;
-        vec beta;
-        double l_remle_null;
-    } result;
-
-    // eigen-decomposition and calculate trace_G
-    mat U(y.n_elem, y.n_elem); // eigen vectors
-    arma::eig_sym(result.eigen_values, U, G);
-    result.eigen_values.transform( [](double val) { return val < 1e-10 ? 0 : val; } );
-
-    double trace_G = arma::mean(result.eigen_values);
-
-    result.UtW = U.t() * W;
-    result.Uty = U.t() * y;
-    result.UtX = U.t() * X;
-
-    double logl_remle_H0;
-    double pve_null;
-    double pve_se_null;
-    double vg_remle_null;
-    double ve_remle_null;
-
-    CalcLambda('R', result.eigen_values, result.UtW, result.Uty, l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
-    // CalcPve(result.eigen_values, result.UtW, result.Uty, result.l_remle_null, trace_G, pve_null, pve_se_null);
-    CalcLmmVgVeBeta(result.eigen_values, result.UtW, result.Uty, result.l_remle_null, vg_remle_null, ve_remle_null, result.Wbeta, result.se_Wbeta);
-
-    result.beta = result.l_remle_null * result.UtX.t() * ((U.t() * (y - (W * result.Wbeta))) / (result.eigen_values * result.l_remle_null + 1.0)) / result.UtX.n_cols;
-    result.Uty -= arma::mean(result.Uty);
-
-    return result;
-}
-
-Rcpp::List run_gibbs_without_u_screen_custom_kinship(
-    vec &y,
-    mat &W,
-    mat &X,
-    mat &G,
-    size_t n_k,
-    size_t w_step,
-    size_t s_step,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
-
-    auto [alpha_vec, beta_vec, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
-                                                            n_k,
-                                                            w_step,
-                                                            s_step);
-
-    return Rcpp::List::create(
-                        Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec,
-                        Rcpp::Named("pD1") = pD1,
-                        Rcpp::Named("pD2") = pD2,
-                        Rcpp::Named("DIC1") = DIC1,
-                        Rcpp::Named("DIC2") = DIC2,
-                        Rcpp::Named("BIC1") = BIC1,
-                        Rcpp::Named("BIC2") = BIC2
-                    );
-
-}
-
-Rcpp::List run_gibbs_without_u_screen(
-    vec &y,
-    mat &W,
-    mat &X,
-    size_t n_k,
-    size_t w_step,
-    size_t s_step,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    mat G = (X * X.t()) / X.n_cols;
-    return run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region);
-}
-
-Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
-    vec &y,
-    mat &W,
-    mat &X,
-    mat &G,
-    size_t m_n_k,
-    size_t w_step,
-    size_t s_step,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
-
-    auto [alpha_vec, beta_vec, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
-                                                            m_n_k,
-                                                            w_step,
-                                                            s_step);
-
-    return Rcpp::List::create(
-                        Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec,
-                        Rcpp::Named("pD1") = pD1,
-                        Rcpp::Named("pD2") = pD2,
-                        Rcpp::Named("DIC1") = DIC1,
-                        Rcpp::Named("DIC2") = DIC2,
-                        Rcpp::Named("BIC1") = BIC1,
-                        Rcpp::Named("BIC2") = BIC2
-                    );
-}
-
-Rcpp::List run_gibbs_without_u_screen_adaptive(
-    vec &y,
-    mat &W,
-    mat &X,
-    size_t m_n_k,
-    size_t w_step,
-    size_t s_step,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    mat G = (X * X.t()) / X.n_cols;
-    return run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region);
-}
-
-Rcpp::List run_VB_custom_kinship(
-    vec &y,
-    mat &W,
-    mat &X,
-    mat &G,
-    size_t n_k,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, G, l_min, l_max, n_region);
-
-    auto [alpha_vec, beta_vec, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
-
-    return Rcpp::List::create(
-                        Rcpp::Named("alpha") = alpha_vec,
-	                    Rcpp::Named("beta") = beta_vec,
-	                    Rcpp::Named("ELBO") = ELBO_vec
-                    );
-}
-
-Rcpp::List run_VB(
-    vec &y,
-    mat &W,
-    mat &X,
-    size_t n_k,
-    double l_min,
-    double l_max,
-    size_t n_region
-    )
-{
-    mat G = (X * X.t()) / X.n_cols;
-    return run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region);
-}

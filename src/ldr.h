@@ -3,79 +3,66 @@
 using arma::mat;
 using arma::vec;
 
-// [[Rcpp::export]]
-Rcpp::List run_VB(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    size_t n_k = 4,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+namespace gibbs_without_u_screen_NS {
 
-// [[Rcpp::export]]
-Rcpp::List run_VB_custom_kinship(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    arma::mat &G,
-    size_t n_k = 4,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+    struct Result {
+        vec alpha;
+        vec beta;
+        vec post_Ealpha;
+        double pheno_mean;
+        double pD1;
+        double pD2;
+        double DIC1;
+        double DIC2;
+        double BIC1;
+        double BIC2;
+    };
 
-// [[Rcpp::export]]
-Rcpp::List run_gibbs_without_u_screen(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    size_t n_k = 4,
-    size_t w_step = 1000,
-    size_t s_step = 1000,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+    Result gibbs_without_u_screen(
+        const mat &UtX,
+        const vec &Uty,
+        const mat &UtW,
+        const vec &D,
+        const vec &Wbeta,
+        const vec &se_Wbeta,
+        const vec &beta,
+        double lambda,
+        size_t n_k,
+        size_t w_step,
+        size_t s_step);
 
-// [[Rcpp::export]]
-Rcpp::List run_gibbs_without_u_screen_custom_kinship(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    arma::mat &G,
-    size_t n_k = 4,
-    size_t w_step = 1000,
-    size_t s_step = 1000,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+    Result gibbs_without_u_screen_adaptive(
+        const mat &UtX,
+        const vec &Uty,
+        const mat &UtW,
+        const vec &eigen_values,
+        const vec &Wbeta,
+        const vec &se_Wbeta,
+        const vec &beta,
+        double lambda,
+        size_t m_n_k,
+        size_t w_step,
+        size_t s_step);
+}
 
-// [[Rcpp::export]]
-Rcpp::List run_gibbs_without_u_screen_adaptive(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    size_t m_n_k = 6,
-    size_t w_step = 1000,
-    size_t s_step = 1000,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+namespace VB_NS {
 
-// [[Rcpp::export]]
-Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
-    arma::vec &y,
-    arma::mat &W,
-    arma::mat &X,
-    arma::mat &G,
-    size_t m_n_k = 6,
-    size_t w_step = 1000,
-    size_t s_step = 1000,
-    double l_min = 1e-7,
-    double l_max = 1e5,
-    size_t n_region = 10
-    );
+    struct Result {
+        vec alpha;
+        vec beta;
+        double pheno_mean;
+        vec ELBO;
+    };
+
+    Result VB(
+        const mat &UtX,
+        const vec &Uty,
+        const mat &UtW,
+        const vec &D,
+        const vec &Wbeta,
+        const vec &se_Wbeta,
+        const vec &beta,
+        double lambda,
+        size_t n_k);
+}
+
