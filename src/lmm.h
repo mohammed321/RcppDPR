@@ -19,20 +19,10 @@
 #ifndef __LMM_H__
 #define __LMM_H__
 
-#include "gsl/gsl_vector.h"
-#include "gsl/gsl_matrix.h"
+#include <RcppArmadillo.h>
 
-
-#ifdef FORCE_FLOAT
-#include "param_float.h"
-#include "io_float.h"
-#else
-#endif
-
-#include <vector>
-using namespace std;
-
-
+using arma::vec;
+using arma::mat;
 
 class FUNC_PARAM
 {
@@ -41,18 +31,16 @@ public:
 	bool calc_null;
 	size_t ni_test;
 	size_t n_cvt;
-	const gsl_vector *eval;
-	const gsl_matrix *Uab;
-	const gsl_vector *ab;
+	const vec &eval;
+	const mat &Uab;
+	const vec &ab;
 	size_t e_mode;
 };
 
-
-void MatrixCalcLR (const gsl_matrix *U, const gsl_matrix *UtX, const gsl_vector *Uty, const gsl_vector *K_eval, const double l_min, const double l_max, const size_t n_region, vector<pair<size_t, double> > &pos_loglr);
 void CalcLambda (const char func_name, FUNC_PARAM &params, const double l_min, const double l_max, const size_t n_region, double &lambda, double &logf);
-void CalcLambda (const char func_name, const gsl_vector *eval, const gsl_matrix *UtW, const gsl_vector *Uty, const double l_min, const double l_max, const size_t n_region, double &lambda, double &logl_H0);
-void CalcPve (const gsl_vector *eval, const gsl_matrix *UtW, const gsl_vector *Uty, const double lambda, const double trace_G, double &pve, double &pve_se);
-void CalcLmmVgVeBeta (const gsl_vector *eval, const gsl_matrix *UtW, const gsl_vector *Uty, const double lambda, double &vg, double &ve, gsl_vector *beta, gsl_vector *se_beta);
+void CalcLambda (const char func_name, const vec &eval, const mat &UtW, const vec &Uty, const double l_min, const double l_max, const size_t n_region, double &lambda, double &logl_H0);
+void CalcPve (const vec &eval, const mat &UtW, const vec &Uty, const double lambda, const double trace_G, double &pve, double &pve_se);
+void CalcLmmVgVeBeta (const vec &eval, const mat &UtW, const vec &Uty, const double lambda, double &vg, double &ve, vec &beta, vec &se_beta);
 
 #endif
 
