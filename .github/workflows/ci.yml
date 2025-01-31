@@ -56,8 +56,7 @@ jobs:
       - name: "HACK: fix mmacosx-min"
         shell: pixi exec --spec sed  -- bash -e {0}
         run:
-          ls -la $(pwd)/.pixi/envs;
-          sed -i 's/-mmacosx-version-min=10.13//g' $(pwd)/.pixi/envs/${{ matrix.environment}}/lib/R/etc/Makeconf
+          sed -i 's/-mmacosx-version-min=10.13//g' $(pwd)/.pixi/envs/default/lib/R/etc/Makeconf
 
       - name: Run unit tests
         run: pixi run --environment ${{ matrix.environment }} devtools_test
