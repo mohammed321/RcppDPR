@@ -46,5 +46,4 @@ get_results <- function() {
   dpr_model_adaptive_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Adaptive_Gibbs")
 }
 
-catch <- get_results()
-
+get_results()
