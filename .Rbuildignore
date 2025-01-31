@@ -4,5 +4,11 @@
 ^\.RData$
 ^\.DS_Store$
 ^\.vscode$
+^\.git
+^\.github
+^\.gitignore
 ^src/Makevars$
 ^tests/testthat/__snaps$
+^pixi.toml
+^pixi.lock
+^\.pixi

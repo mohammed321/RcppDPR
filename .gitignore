@@ -6,4 +6,7 @@ src/Makevars
 .Rproj.user
 **/.DS_Store
 .Rhistory
-pecotmr.Rproj
+DPR.Rproj
+.vscode
+/pixi.lock
+/.pixi
