@@ -36,9 +36,10 @@ jobs:
       - name: Run R CMD CHECK
         run: |
           pixi install --environment ${{ matrix.environment }}
-          ls -la .pixi/envs/default/lib
           ln -sf .pixi/envs/default/lib/libhwasan.so.0 .pixi/envs/default/lib/libhwasan.so
           ln -sf .pixi/envs/${{ matrix.environment }}/lib/libhwasan.so.0 .pixi/envs/${{ matrix.environment }}/lib/libhwasan.so
+          ls -la .pixi/envs/default/lib
+          ls -la .pixi/envs/${{ matrix.environment }}/lib
           pixi run --environment ${{ matrix.environment }} rcmdcheck
 
   ci_osx-64:
