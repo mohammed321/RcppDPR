@@ -47,4 +47,3 @@ get_results <- function() {
 }
 
 get_results()
-
