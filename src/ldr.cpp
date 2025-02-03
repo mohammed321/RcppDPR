@@ -122,7 +122,8 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     double lambda,
     size_t n_k,
     size_t w_step,
-    size_t s_step)
+    size_t s_step,
+    bool show_progress)
 {
     gibbs_without_u_screen_NS::Result result;
 
@@ -236,8 +237,11 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     RandomSampler rs;
 
     // //  begin MCMC sampling
-    ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
-    Rcpp::Rcout << progress_bar;
+    if (show_progress) {
+        ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
+        Rcpp::Rcout << progress_bar;
+    }
+
     for (size_t S = 0; S < (w_step + s_step); S++)
     {
 
@@ -438,8 +442,10 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
             post_sigma2b += sigma2b;
         }
 
-        progress_bar.advance();
-        Rcpp::Rcout << progress_bar;
+        if (show_progress) {
+            progress_bar.advance();
+            Rcpp::Rcout << progress_bar;
+        }
     }
 
     result.alpha = UtX.t() * (bv / s_step) / n_snp;
@@ -477,7 +483,8 @@ VB_NS::Result VB_NS::VB(
     const vec &se_Wbeta,
     const vec &beta,
     double lambda,
-    size_t n_k)
+    size_t n_k,
+    bool show_progress)
 {
     VB_NS::Result result;
 
@@ -768,7 +775,8 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     double lambda,
     size_t m_n_k,
     size_t w_step,
-    size_t s_step)
+    size_t s_step,
+    bool show_progress)
 {
     Rcpp::Rcout << "Now start to adaptively select nk..." << std::endl;
     double min_dic = 10e100;
@@ -782,7 +790,8 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
         auto [_unused1, _unused2, _unused3, unused4, _unused5, _unused6, DIC1, _unused7, _unused8, _unused9] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
                                                             j + 2,
                                                             w_step * sp,
-                                                            s_step * sp);
+                                                            s_step * sp,
+                                                            show_progress);
         Rcpp::Rcout << "DIC is " << DIC1 << std::endl;
         if (DIC1 < min_dic)
         {
@@ -798,6 +807,7 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     return gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, lambda,
                                                             n_k,
                                                             w_step,
-                                                            s_step);
+                                                            s_step,
+                                                            show_progress);
 }
 

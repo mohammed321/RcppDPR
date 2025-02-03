@@ -76,7 +76,8 @@ Rcpp::List run_gibbs_without_u_screen_custom_kinship(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, &G, l_min, l_max, n_region);
@@ -84,7 +85,8 @@ Rcpp::List run_gibbs_without_u_screen_custom_kinship(
     auto [alpha_vec, beta_vec, post_Ealpha, pheno_mean, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             n_k,
                                                             w_step,
-                                                            s_step);
+                                                            s_step,
+                                                            show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
@@ -112,11 +114,12 @@ Rcpp::List run_gibbs_without_u_screen(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     mat G = (X * X.t()) / X.n_cols;
-    return run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region);
+    return run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region, show_progress);
 }
 
 Rcpp::List run_gibbs_without_u_screen_no_kinship(
@@ -128,7 +131,8 @@ Rcpp::List run_gibbs_without_u_screen_no_kinship(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, nullptr, l_min, l_max, n_region, false);
@@ -136,7 +140,8 @@ Rcpp::List run_gibbs_without_u_screen_no_kinship(
     auto [alpha_vec, beta_vec, post_Ealpha, pheno_mean, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             n_k,
                                                             w_step,
-                                                            s_step);
+                                                            s_step,
+                                                            show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
@@ -165,7 +170,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, &G, l_min, l_max, n_region);
@@ -173,7 +179,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
     auto [alpha_vec, beta_vec, post_Ealpha, pheno_mean, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             m_n_k,
                                                             w_step,
-                                                            s_step);
+                                                            s_step,
+                                                            show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
@@ -200,11 +207,12 @@ Rcpp::List run_gibbs_without_u_screen_adaptive(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     mat G = (X * X.t()) / X.n_cols;
-    return run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region);
+    return run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region, show_progress);
 }
 
 Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(
@@ -216,7 +224,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(
     size_t s_step,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, nullptr, l_min, l_max, n_region, false);
@@ -224,7 +233,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(
     auto [alpha_vec, beta_vec, post_Ealpha, pheno_mean, pD1, pD2, DIC1, DIC2, BIC1, BIC2] = gibbs_without_u_screen_adaptive(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null,
                                                             m_n_k,
                                                             w_step,
-                                                            s_step);
+                                                            s_step,
+                                                            show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
@@ -250,12 +260,13 @@ Rcpp::List run_VB_custom_kinship(
     size_t n_k,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, &G, l_min, l_max, n_region);
 
-    auto [alpha_vec, beta_vec, pheno_mean, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
+    auto [alpha_vec, beta_vec, pheno_mean, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k, show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,
@@ -274,11 +285,12 @@ Rcpp::List run_VB(
     size_t n_k,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     mat G = (X * X.t()) / X.n_cols;
-    return run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region);
+    return run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region, show_progress);
 }
 
 Rcpp::List run_VB_no_kinship(
@@ -288,12 +300,13 @@ Rcpp::List run_VB_no_kinship(
     size_t n_k,
     double l_min,
     double l_max,
-    size_t n_region
+    size_t n_region,
+    bool show_progress
     )
 {
     auto [UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null] = setup(y, W, X, nullptr, l_min, l_max, n_region, false);
 
-    auto [alpha_vec, beta_vec, pheno_mean, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k);
+    auto [alpha_vec, beta_vec, pheno_mean, ELBO_vec] = VB(UtX, Uty, UtW, eigen_values, Wbeta, se_Wbeta, beta, l_remle_null, n_k, show_progress);
 
     return Rcpp::List::create(
                         Rcpp::Named("alpha") = alpha_vec,

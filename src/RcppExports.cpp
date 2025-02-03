@@ -13,8 +13,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // run_VB
-Rcpp::List run_VB(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_VB(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_VB(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_VB(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -25,13 +25,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_VB(y, W, X, n_k, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_VB(y, W, X, n_k, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_VB_custom_kinship
-Rcpp::List run_VB_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t n_k, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_VB_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_VB_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t n_k, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_VB_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -43,13 +44,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_VB_custom_kinship(y, W, X, G, n_k, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_VB_no_kinship
-Rcpp::List run_VB_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_VB_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_VB_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_VB_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -60,13 +62,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_VB_no_kinship(y, W, X, n_k, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_VB_no_kinship(y, W, X, n_k, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen
-Rcpp::List run_gibbs_without_u_screen(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -79,13 +82,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen(y, W, X, n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen(y, W, X, n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen_custom_kinship
-Rcpp::List run_gibbs_without_u_screen_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -99,13 +103,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_custom_kinship(y, W, X, G, n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen_no_kinship
-Rcpp::List run_gibbs_without_u_screen_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -118,13 +123,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_no_kinship(y, W, X, n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_no_kinship(y, W, X, n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen_adaptive
-Rcpp::List run_gibbs_without_u_screen_adaptive(arma::vec& y, arma::mat& W, arma::mat& X, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen_adaptive(arma::vec& y, arma::mat& W, arma::mat& X, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -137,13 +143,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive(y, W, X, m_n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive(y, W, X, m_n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen_adaptive_custom_kinship
-Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(arma::vec& y, arma::mat& W, arma::mat& X, arma::mat& G, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP GSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -157,13 +164,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive_custom_kinship(y, W, X, G, m_n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // run_gibbs_without_u_screen_adaptive_no_kinship
-Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region);
-RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP) {
+Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(arma::vec& y, arma::mat& W, arma::mat& X, size_t m_n_k, size_t w_step, size_t s_step, double l_min, double l_max, size_t n_region, bool show_progress);
+RcppExport SEXP _RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship(SEXP ySEXP, SEXP WSEXP, SEXP XSEXP, SEXP m_n_kSEXP, SEXP w_stepSEXP, SEXP s_stepSEXP, SEXP l_minSEXP, SEXP l_maxSEXP, SEXP n_regionSEXP, SEXP show_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -176,21 +184,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type l_min(l_minSEXP);
     Rcpp::traits::input_parameter< double >::type l_max(l_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type n_region(n_regionSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive_no_kinship(y, W, X, m_n_k, w_step, s_step, l_min, l_max, n_region));
+    Rcpp::traits::input_parameter< bool >::type show_progress(show_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_gibbs_without_u_screen_adaptive_no_kinship(y, W, X, m_n_k, w_step, s_step, l_min, l_max, n_region, show_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_RcppDPR_run_VB", (DL_FUNC) &_RcppDPR_run_VB, 7},
-    {"_RcppDPR_run_VB_custom_kinship", (DL_FUNC) &_RcppDPR_run_VB_custom_kinship, 8},
-    {"_RcppDPR_run_VB_no_kinship", (DL_FUNC) &_RcppDPR_run_VB_no_kinship, 7},
-    {"_RcppDPR_run_gibbs_without_u_screen", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen, 9},
-    {"_RcppDPR_run_gibbs_without_u_screen_custom_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_custom_kinship, 10},
-    {"_RcppDPR_run_gibbs_without_u_screen_no_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_no_kinship, 9},
-    {"_RcppDPR_run_gibbs_without_u_screen_adaptive", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive, 9},
-    {"_RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship, 10},
-    {"_RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship, 9},
+    {"_RcppDPR_run_VB", (DL_FUNC) &_RcppDPR_run_VB, 8},
+    {"_RcppDPR_run_VB_custom_kinship", (DL_FUNC) &_RcppDPR_run_VB_custom_kinship, 9},
+    {"_RcppDPR_run_VB_no_kinship", (DL_FUNC) &_RcppDPR_run_VB_no_kinship, 8},
+    {"_RcppDPR_run_gibbs_without_u_screen", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen, 10},
+    {"_RcppDPR_run_gibbs_without_u_screen_custom_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_custom_kinship, 11},
+    {"_RcppDPR_run_gibbs_without_u_screen_no_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_no_kinship, 10},
+    {"_RcppDPR_run_gibbs_without_u_screen_adaptive", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive, 10},
+    {"_RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive_custom_kinship, 11},
+    {"_RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship", (DL_FUNC) &_RcppDPR_run_gibbs_without_u_screen_adaptive_no_kinship, 10},
     {NULL, NULL, 0}
 };
 

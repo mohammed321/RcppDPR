@@ -29,7 +29,8 @@ namespace gibbs_without_u_screen_NS {
         double lambda,
         size_t n_k,
         size_t w_step,
-        size_t s_step);
+        size_t s_step,
+        bool show_progress);
 
     Result gibbs_without_u_screen_adaptive(
         const mat &UtX,
@@ -42,7 +43,8 @@ namespace gibbs_without_u_screen_NS {
         double lambda,
         size_t m_n_k,
         size_t w_step,
-        size_t s_step);
+        size_t s_step,
+        bool show_progress);
 }
 
 namespace VB_NS {
@@ -63,6 +65,7 @@ namespace VB_NS {
         const vec &se_Wbeta,
         const vec &beta,
         double lambda,
-        size_t n_k);
+        size_t n_k,
+        bool show_progress);
 }
 
