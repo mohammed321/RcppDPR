@@ -37,13 +37,13 @@ get_results <- function() {
   w <- matrix(1.0, nrow = length(y), ncol = 1)
 
   set.seed(42)
-  dpr_model_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Gibbs")
+  dpr_model_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Gibbs", show_progress = FALSE)
 
   set.seed(42)
-  dpr_model_vb <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "VB")
+  dpr_model_vb <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "VB", show_progress = FALSE)
 
   set.seed(42)
-  dpr_model_adaptive_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Adaptive_Gibbs")
+  dpr_model_adaptive_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Adaptive_Gibbs", show_progress = FALSE)
 }
 
 get_results()

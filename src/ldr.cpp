@@ -237,8 +237,8 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     RandomSampler rs;
 
     // //  begin MCMC sampling
+    ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
     if (show_progress) {
-        ProgressBar progress_bar("MCMC Sampling", w_step + s_step);
         Rcpp::Rcout << progress_bar;
     }
 
