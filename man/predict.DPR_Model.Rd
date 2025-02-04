@@ -9,7 +9,9 @@
 \arguments{
 \item{dpr_model}{an object of class DPR_Model}
 
-\item{newdata}{Numeric matrix representing the input to the model}
+\item{newdata}{Numeric matrix representing the input to the model
+
+#' @return returns Numeric vector of predictions}
 }
 \description{
 use a DPR model to predict rsults from newdata
