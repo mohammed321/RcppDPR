@@ -11,7 +11,8 @@ Rcpp::List run_VB(
     size_t n_k = 4,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -23,7 +24,8 @@ Rcpp::List run_VB_custom_kinship(
     size_t n_k = 4,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -34,7 +36,8 @@ Rcpp::List run_VB_no_kinship(
     size_t n_k = 4,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -47,7 +50,8 @@ Rcpp::List run_gibbs_without_u_screen(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -61,7 +65,8 @@ Rcpp::List run_gibbs_without_u_screen_custom_kinship(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -74,7 +79,8 @@ Rcpp::List run_gibbs_without_u_screen_no_kinship(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -87,7 +93,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -101,7 +108,8 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_custom_kinship(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
 
 // [[Rcpp::export]]
@@ -114,5 +122,6 @@ Rcpp::List run_gibbs_without_u_screen_adaptive_no_kinship(
     size_t s_step = 1000,
     double l_min = 1e-7,
     double l_max = 1e5,
-    size_t n_region = 10
+    size_t n_region = 10,
+    bool show_progress = true
     );
