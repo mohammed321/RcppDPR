@@ -4,12 +4,7 @@ Title: Rcpp implementation of Dirichlet Process Regression
 Version: 0.1.0
 Author: Mohammad Abu Gazala
 Maintainer: Mohammad Abu Gazala <abugazalamohammad@gmail.com>
-Description: This package provides an Rcpp reimplementation of the
-    the Bayesian non-parametric Dirichlet Process Regression
-    model first published in Zeng & Zhou 2017:
-    https://doi.org/10.1038/s41467-017-00470-2.  A full Bayesian
-    version is implemented with Gibbs sampling, as a well a faster
-    but less accurate variational Bayes approximation.
+Description: This package provides an Rcpp reimplementation of the the Bayesian non-parametric Dirichlet Process Regressio model first published in Zeng & Zhou 2017 (https://doi.org/10.1038/s41467-017-00470-2).  A full Bayesian version is implemented with Gibbs sampling, as a well a faster but less accurate variational Bayes approximation.
 License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,4 +17,5 @@ Suggests:
     testthat (>= 3.0.0),
     snpStats
 Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

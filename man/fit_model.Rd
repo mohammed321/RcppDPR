@@ -2,7 +2,7 @@
 % Please edit documentation in R/wrapper.R
 \name{fit_model}
 \alias{fit_model}
-\title{fit a model to the data using a specified fitting method}
+\title{Fit Dirichlet Process Regression model}
 \usage{
 fit_model(
   y,
@@ -21,17 +21,37 @@ fit_model(
 
 \item{x}{Numeric matrix}
 
-\item{rotate_variables}{Logical value indicating whether to rotate y,w,x using covariance_matrix}
+\item{rotate_variables}{Logical value indicating whether to rotate y, w and x using covariance_matrix}
 
-\item{covariance_matrix}{Numeric matrix used for rotation of y,w,x if NULL and rotate_variables is TRUE then default matrix is used}
+\item{covariance_matrix}{Numeric sample covariance matrix used for rotation of y, w and x - if NULL and rotate_variables is TRUE then the sample covariance matrix is computed from x}
 
-\item{fitting_method}{Character string indicating the method used for fitting the data possible values are 'VB' 'Gibbs' 'Adaptive_Gibbs'}
+\item{fitting_method}{Character string indicating the method used for fitting the data - possible values are:
+\itemize{
+\item 'Gibbs' - full Bayesian inference with Gibbs sampler with a fixed n_k
+\item 'Adaptive_Gibbs' - adaptive version of Gibbs sample that automatically chooses n_k
+\item 'VB' - variational Bayes inference with a fixed n_k
+}}
 
-\item{...}{arguments to pass down to internal methods.}
+\item{...}{arguments to pass through to internal methods.}
 }
 \value{
 returns an object of class 'DPR_Model'
 }
 \description{
-fit a model to the data using a specified fitting method
+Fit a Dirichlet Process Regression model using a specified fitting method.  Outcome (y) should be Gaussian and scaled and centered; predictors (x) and covariates (w) should also be scaled and centered but may be of any distribution
+}
+\details{
+fit_model() can pass a number of additional parameters to the different fitting methods. These parameters are used for all modes:
+\itemize{
+\item n_k: number of mixture components in scale mixture of normals prior (default = 4)
+\item l_min: minimum value of log-likelihood for initial parameter search (default = 1e-7, only modify if you know what you are doing)
+\item l_max: maximum value of log-likelihood for initial parameter search (default = 1e5, only modify if you know what you are doing)
+\item n_regions: number of regions over which to search for maximum log-likelihood (default = 10, only modify if you know what you are doing)
+}
+
+These parameters are only used for the Gibbs and Adaptive Gibbs modes:
+\itemize{
+\item w_step: number of burn-in steps for Gibbs sampler (default = 1000)
+\item s_step: number of inference steps for Gibbs sampler (default = 1000)
+}
 }

@@ -1,18 +1,35 @@
-#' fit a model to the data using a specified fitting method
+#' Fit Dirichlet Process Regression model
 #'
 #' @param y Numeric vector
 #' @param w Numeric matrix
 #' @param x Numeric matrix
-#' @param rotate_variables Logical value indicating whether to rotate y,w,x using covariance_matrix
-#' @param covariance_matrix Numeric matrix used for rotation of y,w,x if NULL and rotate_variables is TRUE then default matrix is used
-#' @param fitting_method Character string indicating the method used for fitting the data possible values are 'VB' 'Gibbs' 'Adaptive_Gibbs'
-#' @param ... arguments to pass down to internal methods.
+#' @param rotate_variables Logical value indicating whether to rotate y, w and x using covariance_matrix
+#' @param covariance_matrix Numeric sample covariance matrix used for rotation of y, w and x - if NULL and rotate_variables is TRUE then the sample covariance matrix is computed from x
+#' @param fitting_method Character string indicating the method used for fitting the data - possible values are:
+#' * 'Gibbs' - full Bayesian inference with Gibbs sampler with a fixed n_k
+#' * 'Adaptive_Gibbs' - adaptive version of Gibbs sample that automatically chooses n_k
+#' * 'VB' - variational Bayes inference with a fixed n_k
+#' @param ... arguments to pass through to internal methods.
 #'
 #' @return returns an object of class 'DPR_Model'
 #'
 #' @useDynLib RcppDPR, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 #' @export
+#'
+#' @description
+#' Fit a Dirichlet Process Regression model using a specified fitting method.  Outcome (y) should be Gaussian and scaled and centered; predictors (x) and covariates (w) should also be scaled and centered but may be of any distribution
+#'
+#' @details
+#' fit_model() can pass a number of additional parameters to the different fitting methods. These parameters are used for all modes:
+#' * n_k: number of mixture components in scale mixture of normals prior (default = 4)
+#' * l_min: minimum value of log-likelihood for initial parameter search (default = 1e-7, only modify if you know what you are doing)
+#' * l_max: maximum value of log-likelihood for initial parameter search (default = 1e5, only modify if you know what you are doing)
+#' * n_regions: number of regions over which to search for maximum log-likelihood (default = 10, only modify if you know what you are doing)
+#'
+#' These parameters are only used for the Gibbs and Adaptive Gibbs modes:
+#' * w_step: number of burn-in steps for Gibbs sampler (default = 1000)
+#' * s_step: number of inference steps for Gibbs sampler (default = 1000)
 fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NULL, fitting_method = "VB", ...) {
 
   if (rotate_variables == FALSE) {
@@ -76,12 +93,12 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
     return(model)
 }
 
-#' use a DPR model to predict rsults from newdata
+#' Use a DPR model to predict results from new data
 #'
 #' @param dpr_model an object of class DPR_Model
 #' @param newdata Numeric matrix representing the input to the model
 #'
-#' #' @return returns Numeric vector of predictions
+#' @return returns Numeric vector of predictions
 #'
 #' @export
 predict.DPR_Model <- function(dpr_model, newdata) {
