@@ -10,7 +10,7 @@ libc = { family="glibc", version="2.17" }
 devtools_document = "R -e 'devtools::document()'"
 devtools_test = "R -e 'devtools::test()'"
 codecov = "R -e 'covr::codecov(quiet = FALSE)'"
-rcmdcheck = "R -e 'rcmdcheck::rcmdcheck()'"
+rcmdcheck = "R -e 'rcmdcheck::rcmdcheck(args = c(\"--no-manual\"))'"
 
 [feature.r43]
 dependencies = {"r-base" = "4.3.*"}
