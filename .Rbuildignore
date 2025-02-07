@@ -13,3 +13,4 @@
 ^pixi.toml
 ^pixi.lock
 ^\.pixi
+^cran-comments\.md$

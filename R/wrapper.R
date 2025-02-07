@@ -1,9 +1,9 @@
 #' Fit Dirichlet Process Regression model
 #'
-#' @param y Numeric vector
-#' @param w Numeric matrix
-#' @param x Numeric matrix
-#' @param rotate_variables Logical value indicating whether to rotate y, w and x using covariance_matrix
+#' @param y Numeric vector of outcome
+#' @param x Numeric matrix of predictors
+#' @param w Numeric matrix of covariates (default = rep(1, length(y)))
+#' @param rotate_variables Logical value indicating whether to rotate y, w and x using covariance_matrix (default = FALSE)
 #' @param covariance_matrix Numeric sample covariance matrix used for rotation of y, w and x - if NULL and rotate_variables is TRUE then the sample covariance matrix is computed from x
 #' @param fitting_method Character string indicating the method used for fitting the data - possible values are:
 #' * 'Gibbs' - full Bayesian inference with Gibbs sampler with a fixed n_k
@@ -31,6 +31,12 @@
 #' * w_step: number of burn-in steps for Gibbs sampler (default = 1000)
 #' * s_step: number of inference steps for Gibbs sampler (default = 1000)
 #' * m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
+#' @example
+#' n <- 700
+#' p <- 12000
+#' y <- rnorm(n = n, mean = 0, sd = 1)
+#' x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
+#' dpr_model <- fit_model(y, x, fitting_method = "VB")
 fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NULL, fitting_method = "VB", ...) {
 
   if (rotate_variables == FALSE) {
@@ -102,6 +108,15 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 #' @return returns Numeric vector of predictions
 #'
 #' @export
+#' @example
+#' n <- 700
+#' p <- 12000
+#' y <- rnorm(n = n, mean = 0, sd = 1)
+#' x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
+#' dpr_model <- fit_model(y, x, fitting_method = "VB")
+#' new_n <- 100
+#' new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = new_n, ncol = p)
+#' new_y <- predict(dpr_model, new_n)
 predict.DPR_Model <- function(dpr_model, newdata) {
   if (missing(newdata)) {
     stop("newdata must be provided for prediction.")
