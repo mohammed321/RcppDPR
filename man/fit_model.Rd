@@ -53,5 +53,6 @@ These parameters are only used for the Gibbs and Adaptive Gibbs modes:
 \itemize{
 \item w_step: number of burn-in steps for Gibbs sampler (default = 1000)
 \item s_step: number of inference steps for Gibbs sampler (default = 1000)
+\item m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
 }
 }

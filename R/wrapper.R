@@ -30,6 +30,7 @@
 #' These parameters are only used for the Gibbs and Adaptive Gibbs modes:
 #' * w_step: number of burn-in steps for Gibbs sampler (default = 1000)
 #' * s_step: number of inference steps for Gibbs sampler (default = 1000)
+#' * m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
 fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NULL, fitting_method = "VB", ...) {
 
   if (rotate_variables == FALSE) {
