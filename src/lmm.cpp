@@ -776,8 +776,6 @@ void CalcUab(const mat &UtW, const vec &Uty, mat &Uab)
 	}
 }
 
-#include <Rcpp.h>
-
 void CalcLambda(const char func_name, FUNC_PARAM &params, const double l_min, const double l_max, const size_t n_region, double &lambda, double &logf)
 {
 	if (func_name != 'R' && func_name != 'L' && func_name != 'r' && func_name != 'l')

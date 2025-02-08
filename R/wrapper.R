@@ -32,11 +32,10 @@
 #' * s_step: number of inference steps for Gibbs sampler (default = 1000)
 #' * m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
 #' @example
-#' n <- 700
-#' p <- 12000
-#' y <- rnorm(n = n, mean = 0, sd = 1)
-#' x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
-#' dpr_model <- fit_model(y, x, fitting_method = "VB")
+#' x = readRDS("tests/testthat/data/in/x.rds")
+#' y = readRDS("tests/testthat/data/in/y.rds")
+#' w = readRDS("tests/testthat/data/in/w.rds")
+#' dpr_model <- fit_model(y, w, x, fitting_method = "VB")
 fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NULL, fitting_method = "VB", ...) {
 
   if (rotate_variables == FALSE) {
@@ -109,14 +108,14 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 #'
 #' @export
 #' @example
-#' n <- 700
-#' p <- 12000
-#' y <- rnorm(n = n, mean = 0, sd = 1)
-#' x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
-#' dpr_model <- fit_model(y, x, fitting_method = "VB")
-#' new_n <- 100
-#' new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = new_n, ncol = p)
-#' new_y <- predict(dpr_model, new_n)
+#' n <- 500
+#' p <- 10775
+#' x = readRDS("tests/testthat/data/in/x.rds")
+#' y = readRDS("tests/testthat/data/in/y.rds")
+#' w = readRDS("tests/testthat/data/in/w.rds")
+#' dpr_model <- fit_model(y, w, x, fitting_method = "VB")
+#' new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
+#' new_y <- predict(dpr_model, new_x)
 predict.DPR_Model <- function(dpr_model, newdata) {
   if (missing(newdata)) {
     stop("newdata must be provided for prediction.")
