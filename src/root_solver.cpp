@@ -5,9 +5,27 @@
 #include <gsl/gsl_roots.h>
 #include <gsl/gsl_errno.h>
 
+void my_error_handler (
+                        const char * reason,
+                        const char * file,
+                        int line,
+                        int gsl_errno
+                    )
+{
+    gsl_stream_printf ("ERROR", file, line, reason);
+}
 
+void set_error_handler() {
+    gsl_set_error_handler(&my_error_handler);
+}
+
+void reset_error_handler_default() {
+    gsl_set_error_handler(nullptr);
+}
 
 double solve_root_brent(root_solver::function fx, void* params, double x_lower, double x_upper, size_t max_iter, double epsabs, double epsrel) {
+
+    set_error_handler();
 
     const gsl_root_fsolver_type *T_f = gsl_root_fsolver_brent;
     gsl_root_fsolver *s_f = gsl_root_fsolver_alloc(T_f);
@@ -29,10 +47,14 @@ double solve_root_brent(root_solver::function fx, void* params, double x_lower, 
 
     gsl_root_fsolver_free(s_f);
 
+    reset_error_handler_default();
+
     return root;
 }
 
 double solve_root_newton(root_solver::function fx, root_solver::function dfx, root_solver::fdf_function fdfx, void* params, double x_guess, const double x_min, const double x_max, size_t max_iter, double epsabs, double epsrel) {
+
+    set_error_handler();
 
     const gsl_root_fdfsolver_type *T_fdf = gsl_root_fdfsolver_newton;
     gsl_root_fdfsolver *s_fdf = gsl_root_fdfsolver_alloc(T_fdf);
@@ -57,6 +79,8 @@ double solve_root_newton(root_solver::function fx, root_solver::function dfx, ro
     root = std::clamp(root, x_min, x_max);
 
     gsl_root_fdfsolver_free(s_fdf);
+
+    reset_error_handler_default();
 
     return root;
 }

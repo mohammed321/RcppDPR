@@ -15,13 +15,13 @@ fit_model(
 )
 }
 \arguments{
-\item{y}{Numeric vector}
+\item{y}{Numeric vector of outcome}
 
-\item{w}{Numeric matrix}
+\item{w}{Numeric matrix of covariates (default = rep(1, length(y)))}
 
-\item{x}{Numeric matrix}
+\item{x}{Numeric matrix of predictors}
 
-\item{rotate_variables}{Logical value indicating whether to rotate y, w and x using covariance_matrix}
+\item{rotate_variables}{Logical value indicating whether to rotate y, w and x using covariance_matrix (default = FALSE)}
 
 \item{covariance_matrix}{Numeric sample covariance matrix used for rotation of y, w and x - if NULL and rotate_variables is TRUE then the sample covariance matrix is computed from x}
 
