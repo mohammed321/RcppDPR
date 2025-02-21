@@ -41,6 +41,9 @@ auto setup(
         result.W = U.t() * W;
         result.y = U.t() * y;
         result.X = U.t() * X;
+
+        double logl_remle_H0;
+        CalcLambda('R', result.eigen_values, result.W, result.y, l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
     }
     else {
         result.W = W;
@@ -48,15 +51,16 @@ auto setup(
         result.X = X;
         result.eigen_values = vec(y.n_elem, arma::fill::ones);
         U = mat(y.n_elem, y.n_elem, arma::fill::eye);
+        result.l_remle_null = 1.0;
     }
 
-    double logl_remle_H0;
+    
     double vg_remle_null;
     double ve_remle_null;
     // double pve_null;
     // double pve_se_null;
 
-    CalcLambda('R', result.eigen_values, result.W, result.y, l_min, l_max, n_region, result.l_remle_null, logl_remle_H0);
+    
     // CalcPve(result.eigen_values, result.UtW, result.Uty, result.l_remle_null, trace_G, pve_null, pve_se_null);
     CalcLmmVgVeBeta(result.eigen_values, result.W, result.y, result.l_remle_null, vg_remle_null, ve_remle_null, result.Wbeta, result.se_Wbeta);
 
