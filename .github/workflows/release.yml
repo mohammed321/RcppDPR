@@ -47,11 +47,11 @@ jobs:
           if [[ ${{ github.event.inputs.tag }} != "auto" ]]; then
             sed -i 's/Version: .*$/Version: ${{ github.event.inputs.tag }}/' DESCRIPTION
           elif [[ ${{ github.event.inputs.increment_major_version }} == "true" ]]; then
-            pixi run use_major_version
+            pixi run --environment r44 use_major_version
           elif [[ ${{ github.event.inputs.increment_minor_version }} == "true" ]]; then
-            pixi run use_minor_version
+            pixi run --environment r44 use_minor_version
           elif [[ ${{ github.event.inputs.increment_patch_version }} == "true" ]]; then
-            pixi run use_patch_version
+            pixi run --environment r44 use_patch_version
           fi
 
       - name: Commit changes to version
