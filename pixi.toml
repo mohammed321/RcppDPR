@@ -11,6 +11,9 @@ devtools_document = "R -e 'devtools::document()'"
 devtools_test = "R -e 'devtools::test()'"
 codecov = "R -e 'covr::codecov(quiet = FALSE)'"
 rcmdcheck = "R -e 'rcmdcheck::rcmdcheck(args = c(\"--no-manual\"))'"
+use_major_version = "R -e 'usethis::use_version(which = \"major\", push = FALSE)'"
+use_minor_version = "R -e 'usethis::use_version(which = \"minor\", push = FALSE)'"
+use_patch_version = "R -e 'usethis::use_version(which = \"patch\", push = FALSE)'"
 
 [feature.r43]
 dependencies = {"r-base" = "4.3.*"}
@@ -26,7 +29,6 @@ r44 = {features = ["r44"]}
 "gcc" = "*"
 
 [dependencies]
-"bioconductor-snpstats" = "*"
 "gsl" = "*"
 "r-devtools" = "*"
 "r-rcmdcheck" = "*"
