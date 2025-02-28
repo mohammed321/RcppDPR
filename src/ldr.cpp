@@ -189,7 +189,7 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
     lambda = std::clamp(lambda, 0.01, 100.0);
 
     vec bk(n_k);
-    bk.at(0) = lambda * (ak - 1) / n_snp;;
+    bk.at(0) = lambda * (ak - 1) / n_snp;
     for (size_t i = 1; i < n_k; i++)
     {
         bk.at(i) = bk.at(i - 1) * 1.7 * sqrt(pow(i, i));
@@ -556,10 +556,9 @@ VB_NS::Result VB_NS::VB(
 
     double ak = 21;
     lambda = std::clamp(lambda, 0.01, 100.0);
-    double bk0 = lambda * (ak - 1) / n_snp;
 
     vec bk(n_k);
-    bk.at(0) = bk0;
+    bk.at(0) = lambda * (ak - 1) / n_snp;
     for (size_t i = 1; i < n_k; i++)
     {
         bk.at(i) = bk.at(i - 1) * 1.7 * sqrt(pow(i, i));
