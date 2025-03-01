@@ -14,3 +14,4 @@
 ^pixi.lock
 ^\.pixi
 ^cran-comments\.md$
+^CRAN-SUBMISSION$

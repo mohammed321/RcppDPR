@@ -31,7 +31,8 @@
 #' * w_step: number of burn-in steps for Gibbs sampler (default = 1000)
 #' * s_step: number of inference steps for Gibbs sampler (default = 1000)
 #' * m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
-#' @example
+#' @examples
+#' print(getwd())
 #' x = readRDS("tests/testthat/data/in/x.rds")
 #' y = readRDS("tests/testthat/data/in/y.rds")
 #' w = readRDS("tests/testthat/data/in/w.rds")
@@ -107,7 +108,8 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 #' @return returns Numeric vector of predictions
 #'
 #' @export
-#' @example
+#' @examples
+#' print(getwd())
 #' n <- 500
 #' p <- 10775
 #' x = readRDS("tests/testthat/data/in/x.rds")

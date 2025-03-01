@@ -56,3 +56,10 @@ These parameters are only used for the Gibbs and Adaptive Gibbs modes:
 \item m_n_k: maximum number of mixture components in scale mixture of normals prior (default = 6, Adaptive Gibbs only)
 }
 }
+\examples{
+print(getwd())
+x = readRDS("tests/testthat/data/in/x.rds")
+y = readRDS("tests/testthat/data/in/y.rds")
+w = readRDS("tests/testthat/data/in/w.rds")
+dpr_model <- fit_model(y, w, x, fitting_method = "VB")
+}
