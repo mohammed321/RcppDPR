@@ -21,9 +21,12 @@ Use a DPR model to predict results from new data
 print(getwd())
 n <- 500
 p <- 10775
-x = readRDS("tests/testthat/data/in/x.rds")
-y = readRDS("tests/testthat/data/in/y.rds")
-w = readRDS("tests/testthat/data/in/w.rds")
+file_path_x <- system.file("extdata", "data/in/x.rds", package = "RcppDPR")
+file_path_y <- system.file("extdata", "data/in/y.rds", package = "RcppDPR")
+file_path_w <- system.file("extdata", "data/in/w.rds", package = "RcppDPR")
+x = readRDS(file_path_x)
+y = readRDS(file_path_y)
+w = readRDS(file_path_w)
 dpr_model <- fit_model(y, w, x, fitting_method = "VB")
 new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
 new_y <- predict(dpr_model, new_x)

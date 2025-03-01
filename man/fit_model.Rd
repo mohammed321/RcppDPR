@@ -58,8 +58,12 @@ These parameters are only used for the Gibbs and Adaptive Gibbs modes:
 }
 \examples{
 print(getwd())
-x = readRDS("tests/testthat/data/in/x.rds")
-y = readRDS("tests/testthat/data/in/y.rds")
-w = readRDS("tests/testthat/data/in/w.rds")
+file_path_x <- system.file("extdata", "data/in/x.rds", package = "RcppDPR")
+print(file_path_x)
+file_path_y <- system.file("extdata", "data/in/y.rds", package = "RcppDPR")
+file_path_w <- system.file("extdata", "data/in/w.rds", package = "RcppDPR")
+x = readRDS(file_path_x)
+y = readRDS(file_path_y)
+w = readRDS(file_path_w)
 dpr_model <- fit_model(y, w, x, fitting_method = "VB")
 }

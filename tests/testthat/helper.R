@@ -1,8 +1,11 @@
 get_results <- function() {
-
-  x = readRDS("data/in/x.rds")
-  y = readRDS("data/in/y.rds")
-  w = readRDS("data/in/w.rds")
+  file_path_x <- system.file("extdata", "data/in/x.rds", package = "RcppDPR")
+  print(file_path_x)
+  x = readRDS(file_path_x)
+  file_path_y <- system.file("extdata", "data/in/y.rds", package = "RcppDPR")
+  y = readRDS(file_path_y)
+  file_path_w <- system.file("extdata", "data/in/w.rds", package = "RcppDPR")
+  w = readRDS(file_path_w)
 
   set.seed(42)
   dpr_model_gibbs <<- fit_model(y,w,x, rotate_variables = TRUE, fitting_method = "Gibbs", show_progress = FALSE)
