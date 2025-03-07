@@ -122,7 +122,7 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 #' dpr_model <- fit_model(y, w, x, fitting_method = "VB")
 #' new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
 #' new_y <- predict(dpr_model, new_x)
-predict.DPR_Model <- function(dpr_model, newdata) {
+predict.DPR_Model <- function(dpr_model, newdata, ...) {
   if (missing(newdata)) {
     stop("newdata must be provided for prediction.")
   }
