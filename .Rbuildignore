@@ -8,6 +8,7 @@
 ^\.github
 ^\.gitignore
 ^codecov.yml
+^/.covrignore
 ^src/Makevars$
 ^tests/testthat/__snaps$
 ^pixi.toml
