@@ -57,9 +57,7 @@ These parameters are only used for the Gibbs and Adaptive Gibbs modes:
 }
 }
 \examples{
-print(getwd())
 file_path_x <- system.file("extdata", "data/in/x.rds", package = "RcppDPR")
-print(file_path_x)
 file_path_y <- system.file("extdata", "data/in/y.rds", package = "RcppDPR")
 file_path_w <- system.file("extdata", "data/in/w.rds", package = "RcppDPR")
 x = readRDS(file_path_x)

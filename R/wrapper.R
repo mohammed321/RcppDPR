@@ -104,8 +104,9 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 
 #' Use a DPR model to predict results from new data
 #'
-#' @param dpr_model an object of class DPR_Model
+#' @param object an object of class DPR_Model
 #' @param newdata Numeric matrix representing the input to the model
+#' @param ... ignored args.
 #'
 #' @return returns Numeric vector of predictions
 #'
@@ -122,10 +123,10 @@ fit_model <- function(y, w, x, rotate_variables = FALSE, covariance_matrix = NUL
 #' dpr_model <- fit_model(y, w, x, fitting_method = "VB")
 #' new_x <- matrix(rnorm(n = n * p, mean = 0, sd = 1), nrow = n, ncol = p)
 #' new_y <- predict(dpr_model, new_x)
-predict.DPR_Model <- function(dpr_model, newdata, ...) {
+predict.DPR_Model <- function(object, newdata, ...) {
   if (missing(newdata)) {
     stop("newdata must be provided for prediction.")
   }
 
-  return((newdata %*% (dpr_model$beta + dpr_model$alpha)) + dpr_model$pheno_mean)
+  return((newdata %*% (object$beta + object$alpha)) + object$pheno_mean)
 }

@@ -4,12 +4,14 @@
 \alias{predict.DPR_Model}
 \title{Use a DPR model to predict results from new data}
 \usage{
-\method{predict}{DPR_Model}(dpr_model, newdata)
+\method{predict}{DPR_Model}(object, newdata, ...)
 }
 \arguments{
-\item{dpr_model}{an object of class DPR_Model}
+\item{object}{an object of class DPR_Model}
 
 \item{newdata}{Numeric matrix representing the input to the model}
+
+\item{...}{ignored args.}
 }
 \value{
 returns Numeric vector of predictions
@@ -18,7 +20,6 @@ returns Numeric vector of predictions
 Use a DPR model to predict results from new data
 }
 \examples{
-print(getwd())
 n <- 500
 p <- 10775
 file_path_x <- system.file("extdata", "data/in/x.rds", package = "RcppDPR")
