@@ -7,7 +7,7 @@ Authors@R: c(
     person("Mohammad", "Abu Gazala", , "abugazalamohammad@gmail.com", role = c("cre", "aut")),
     person("Daniel", "Nachun", , "dnachun@stanford.edu", role = "ctb")
   )
-License: GPL-3 + file LICENSE
+License: GPL-3
 Encoding: UTF-8
 Imports: Rcpp (>= 1.0.13)
 LinkingTo:
