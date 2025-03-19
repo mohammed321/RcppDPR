@@ -35,7 +35,7 @@ double solve_root_brent(root_solver::function fx, void* params, double x_lower, 
     F.params = params;
 
     gsl_root_fsolver_set(s_f, &F, x_lower, x_upper);
-    double root;
+    double root{};
 
     for (size_t i = 0; i < max_iter; i++) {
         gsl_root_fsolver_iterate(s_f);

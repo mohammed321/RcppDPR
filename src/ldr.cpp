@@ -204,7 +204,7 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
 
     double a_lambda = a0 + n_k;
     double b_lambda = b0;
-    double Elogsigmae, tx_ywx_res, xtxabk, A, post_Gn = 0;
+    double Elogsigmae, tx_ywx_res, xtxabk, A;
     double sigma2b = 0.1;
 
     double post_llike = 0;
@@ -329,15 +329,15 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
             pik_beta.row(i) = index.t() / arma::accu(index);
 
             // multinomial sampling
-            double mult_prob[n_k];
-            int mult_no[n_k];
+            std::vector<double> mult_prob(n_k);
+            std::vector<int> mult_no(n_k);
 
             for (size_t k = 0; k < n_k; k++)
             {
                 mult_prob[k] = pik_beta.at(i, k);
             }
 
-            rs.multinomial_sample(n_k, 1, mult_prob, mult_no);
+            rs.multinomial_sample(n_k, 1, mult_prob.data(), mult_no.data());
             for (size_t k = 0; k < n_k; k++)
             {
                 gamma_beta.at(i, k) = mult_no[k];
@@ -425,11 +425,6 @@ gibbs_without_u_screen_NS::Result gibbs_without_u_screen_NS::gibbs_without_u_scr
         }
 
         sigma2b = h(S + 1) / (1 - h(S + 1));
-
-        if (S > (w_step - 1))
-        {
-            post_Gn += Gn;
-        }
         ////////////////////////////////////
 
         double llike0 = logLike(D, y_res, sigma2b, sigma2e);
